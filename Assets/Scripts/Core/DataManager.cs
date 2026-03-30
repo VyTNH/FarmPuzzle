@@ -44,47 +44,47 @@ public class DataManager : MonoBehaviour
         InitStaticData(); // Khởi tạo Cửa hàng Hạt giống nếu chưa có
     }
 
-    // ==== MÔ PHỎNG HỆ THỐNG ĐĂNG NHẬP (OAUTH META / FACEBOOK) ====
-    public bool LoginViaMetaFacebook(string fbUserID, string fbUserName)
+    // ==== HỆ THỐNG ĐĂNG NHẬP / TẠO TÀI KHOẢN ====
+    public bool LoginPlayer(string userID, string userName)
     {
-        // 1. Dùng Database quét xem Meta ID này đã đăng ký Game chưa
-        var player = DB.Table<PlayerModel>().Where(p => p.PlayerID == fbUserID).FirstOrDefault();
+        // 1. Dùng Database quét xem ID này đã đăng ký Game chưa
+        var player = DB.Table<PlayerModel>().Where(p => p.PlayerID == userID).FirstOrDefault();
         
         if (player != null)
         {
             // TÌM THẤY TÀI KHOẢN -> LOAD XONG
             CurrentPlayer = player;
-            Debug.Log($"[META LOGIN] Đăng nhập thành công! Chào mừng trở lại {CurrentPlayer.Name}");
+            Debug.Log($"[LOGIN] Đăng nhập thành công! Chào mừng trở lại {CurrentPlayer.Name}");
             return true;
         }
         else
         {
             // KHÔNG TÌM THẤY -> CẤP DỮ LIỆU TÂN THỦ (NEW GAME)
-            return CreateNewPlayer(fbUserID, fbUserName);
+            return CreateNewPlayer(userID, userName);
         }
     }
 
-    private bool CreateNewPlayer(string fbUserID, string fbUserName)
+    private bool CreateNewPlayer(string userID, string userName)
     {
         // 1. Tạo Tài khoản Người chơi
         var newPlayer = new PlayerModel {
-            PlayerID = fbUserID,
-            Name = fbUserName,
+            PlayerID = userID,
+            Name = userName,
             EXP = 0,
-            Money = 500 // Tiền trợ cấp khởi nghiệp Meta
+            Money = 500 // Tiền khởi nghiệp
         };
         DB.Insert(newPlayer);
 
         // 2. Tặng Vũ Khí & Hạt giống đầu tay (Bảng Inventory)
-        DB.Insert(new InventoryModel { PlayerID = fbUserID, ItemID = "seed_carrot", Quantity = 10 });
-        DB.Insert(new InventoryModel { PlayerID = fbUserID, ItemID = "tool_hoe", Quantity = 1 });
-        DB.Insert(new InventoryModel { PlayerID = fbUserID, ItemID = "tool_watercan", Quantity = 1 });
+        DB.Insert(new InventoryModel { PlayerID = userID, ItemID = "seed_carrot", Quantity = 10 });
+        DB.Insert(new InventoryModel { PlayerID = userID, ItemID = "tool_hoe", Quantity = 1 });
+        DB.Insert(new InventoryModel { PlayerID = userID, ItemID = "tool_watercan", Quantity = 1 });
 
         // 3. Phân chia 4 lô đất mặc định (Bảng Farm_Tile)
         for (int i = 0; i < 4; i++) {
             DB.Insert(new FarmTileModel { 
-                TileID = $"tile_{fbUserID}_{i}", 
-                PlayerID = fbUserID, 
+                TileID = $"tile_{userID}_{i}", 
+                PlayerID = userID, 
                 State = 0, 
                 PlantedSeedID = "", 
                 PlantTimeTicks = 0, 
@@ -95,7 +95,7 @@ public class DataManager : MonoBehaviour
 
         // 4. Nhồi nhiệm vụ tân thủ (Bảng Player_Quest)
         DB.Insert(new PlayerQuestModel {
-            PlayerID = fbUserID,
+            PlayerID = userID,
             QuestID = "quest_first_harvest",
             QuestProgress = 0,
             IsBanned = false
@@ -103,7 +103,7 @@ public class DataManager : MonoBehaviour
 
         // Đổ data vào RAM để dùng trong quá trình Game Loop chạy
         CurrentPlayer = newPlayer;
-        Debug.Log($"[META LOGIN] Đã tạo thành công Nông dân mới: {fbUserName}. Cấu hình toàn bộ ERD tân thủ thành công!");
+        Debug.Log($"[LOGIN] Đã tạo thành công Nông dân mới: {userName}. Cấu hình toàn bộ ERD tân thủ thành công!");
         return true;
     }
 
