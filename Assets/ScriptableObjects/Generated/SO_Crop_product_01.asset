@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbbf84f5b0f9fe148863768def4f28ee, type: 3}
+  m_Name: SO_Crop_product_01
+  m_EditorClassIdentifier: Assembly-CSharp::CropDataSO
+  totalTimeToHarvest: 120
+  productID: product_01
+  growthStages:
+  - {fileID: 21300000, guid: 886f0c77661d5fc4eba17989285f90ec, type: 3}
+  - {fileID: 21300000, guid: 886f0c77661d5fc4eba17989285f90ec, type: 3}
+  - {fileID: 21300000, guid: 886f0c77661d5fc4eba17989285f90ec, type: 3}
+  yieldAmount: 1

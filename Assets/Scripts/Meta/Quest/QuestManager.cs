@@ -67,7 +67,7 @@ namespace FarmPuzzle.Meta
             Debug.Log("<color=green>[Level]</color> Khởi động màn chơi mới.");
         }
 
-        private void UpdateProgress(string itemID, int amount)
+        public void UpdateProgress(string itemID, int amount)
         {
             bool hasChanged = false;
             foreach (var quest in activeQuests)

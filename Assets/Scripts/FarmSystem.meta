@@ -1,13 +1,5 @@
 fileFormatVersion: 2
-<<<<<<< HEAD:Assets/Scripts/FarmSystem.meta
-<<<<<<< HEAD:Assets/Scripts/FarmSystem.meta
 guid: 4b844d7c5470a834db3d64ef6c16c8ee
-=======
-guid: 8092963afa44e4f448236d9c434df9a7
->>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/Scripts/FarmSystem.meta
-=======
-guid: d26e9b0bfc56c3740916c236f40232df
->>>>>>> origin/feat/Vuong-Tertris:FarmPuzzle/Assets/Scripts/FarmSystem.meta
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}

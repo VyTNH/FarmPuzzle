@@ -37,7 +37,7 @@ public class DatabaseTesterWindow : EditorWindow
     private PropertyInfo[] currentProperties;
     private string statusMessage = "Bấm 'Đọc Dữ Liệu Bảng Này' để xem...";
 
-    [MenuItem("Farm Puzzle/Tra Cứu Database (Chuẩn ERD) & JSON")]
+    [MenuItem("FarmPuzzle/Tra Cứu Database (Chuẩn ERD) & JSON")]
     public static void ShowWindow()
     {
         GetWindow<DatabaseTesterWindow>("Tra Cứu ERD", true, typeof(EditorWindow));

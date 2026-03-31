@@ -1,8 +1,9 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 [CreateAssetMenu(fileName = "NewSeedItem", menuName = "Farm/Seed Item")]
 public class SeedItemSO : ScriptableObject
 {
+    public string seedID; // Mã ID lưu trong DataBase (VD: seed_carrot)
     public string seedName;
     public Sprite inventoryIcon;
     public int buyPrice;

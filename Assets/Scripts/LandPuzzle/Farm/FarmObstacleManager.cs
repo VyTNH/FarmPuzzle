@@ -11,9 +11,7 @@ namespace FarmPuzzle.LandPuzzle.Farm
     /// </summary>
     public class FarmObstacleManager : MonoBehaviour
     {
-        [Header("Farm Grid")]
-        [SerializeField] private int _farmGridWidth  = 5;
-        [SerializeField] private int _farmGridHeight = 5;
+
 
         [Header("References")]
         [SerializeField] private GridBoard _gridBoard;
