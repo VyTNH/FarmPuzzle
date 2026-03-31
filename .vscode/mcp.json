@@ -1,0 +1,11 @@
+{
+  "servers": {
+    "unity": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "e:\\FarmPuzzle\\FarmPuzzle\\.vscode\\unity-mcp-server.js"
+      ]
+    }
+  }
+}

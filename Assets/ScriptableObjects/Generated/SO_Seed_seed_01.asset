@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5c3c84214518ed498977c1210f03fdf, type: 3}
+  m_Name: SO_Seed_seed_01
+  m_EditorClassIdentifier: Assembly-CSharp::SeedItemSO
+  seedID: seed_01
+  seedName: "H\u1EA1t Gi\u1ED1ng Khoai T\xE2y"
+  inventoryIcon: {fileID: -5661783315169486296, guid: f163724fa706f9845b2073bbe158372c, type: 3}
+  buyPrice: 15
+  cropData: {fileID: 11400000, guid: fcd3c659f680eee46b04f16b3938da14, type: 2}
