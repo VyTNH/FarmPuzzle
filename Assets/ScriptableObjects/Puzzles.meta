@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD:Assets/ScriptableObjects/Puzzles.meta
 guid: 4b5ad5d16daae5a499d44de0f079bf2a
+=======
+guid: 6f93c605b1b50e04197c4ce5623710b3
+>>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/ScriptableObjects/Puzzles.meta
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}

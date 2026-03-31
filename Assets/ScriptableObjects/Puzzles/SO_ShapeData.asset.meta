@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD:Assets/ScriptableObjects/Puzzles/SO_ShapeData.asset.meta
 guid: e1c35245d1db9e44d93c9b5f0aaaea1b
+=======
+guid: b6473dfd6a5f95041a44b8c63eb37604
+>>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/ScriptableObjects/Puzzles/SO_ShapeData.asset.meta
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 0

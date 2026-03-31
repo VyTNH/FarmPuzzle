@@ -1,8 +1,15 @@
 fileFormatVersion: 2
+<<<<<<< HEAD:Assets/ScriptableObjects/Puzzles/SO_Level_1.asset.meta
 guid: 8b11159643ed5ea4491700036e11d2d2
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000
+=======
+guid: bc18036c7823a8b4a9773d53fda0ca86
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 0
+>>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/ScriptableObjects/Puzzles/SO_Level_1.asset.meta
   userData: 
   assetBundleName: 
   assetBundleVariant: 

@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD:Assets/Scenes/01_MainFarm.unity.meta
 guid: 54c49f16bd0b75b4baf08900644658f3
+=======
+guid: e750999c2bd083d4597c79c66d98561e
+>>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/Scenes/01_MainFarm.unity.meta
 DefaultImporter:
   externalObjects: {}
   userData: 

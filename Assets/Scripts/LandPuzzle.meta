@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD:Assets/Scripts/LandPuzzle.meta
 guid: 6b0a8810019a2194499a06619450f528
+=======
+guid: c176341b8ea003d45bc395360b1b6a77
+>>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/Scripts/LandPuzzle.meta
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}

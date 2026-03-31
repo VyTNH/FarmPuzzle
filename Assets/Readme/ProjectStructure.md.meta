@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD:Assets/Readme/ProjectStructure.md.meta
 guid: 543c8ab7ba41b3b4ca80d12b32592ff0
+=======
+guid: 1ca68d5dfcb1d8e49b52a7043ba6a92b
+>>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/Readme/ProjectStructure.md.meta
 TextScriptImporter:
   externalObjects: {}
   userData: 

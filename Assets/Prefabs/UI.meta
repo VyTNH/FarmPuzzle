@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD:Assets/Prefabs/UI.meta
 guid: d26947494497fab4a9c5bb6d66cff085
+=======
+guid: e8ee56f50983f9749bf6dd04880d1806
+>>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/Prefabs/UI.meta
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}

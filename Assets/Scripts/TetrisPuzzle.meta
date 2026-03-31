@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD:Assets/Scripts/TetrisPuzzle.meta
 guid: f4ef4f2df2dffe045b2333a60c2c7241
+=======
+guid: cbaa8be05a806b848b8e0b68da4a8b25
+>>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/Scripts/TetrisPuzzle.meta
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}

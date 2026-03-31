@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD:Assets/ScriptableObjects/CropsAndSeeds/SO_CropData_Radish.asset.meta
 guid: da59b4f8466728548afaf55b4e71a6af
+=======
+guid: 0061ac88d5e9e68499d9db891abdaa1f
+>>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/ScriptableObjects/CropsAndSeeds/SO_CropData_Radish.asset.meta
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 0

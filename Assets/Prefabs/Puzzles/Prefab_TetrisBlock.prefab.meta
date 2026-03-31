@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD:Assets/Prefabs/Puzzles/Prefab_TetrisBlock.prefab.meta
 guid: 0d9b11f5cdc6abf45aa0b7a48e8b5894
+=======
+guid: 23296814327c5bb4fa1bdcc4462f5381
+>>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/Prefabs/Puzzles/Prefab_TetrisBlock.prefab.meta
 PrefabImporter:
   externalObjects: {}
   userData: 

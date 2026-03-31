@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD:Assets/Scripts.meta
 guid: 70e9f46611bc19245bc4e1524daac53e
+=======
+guid: 0d751d648978ec549be7dd5894cc93b1
+>>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/Scripts.meta
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}

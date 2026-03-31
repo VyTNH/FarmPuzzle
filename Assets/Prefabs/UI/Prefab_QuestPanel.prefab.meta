@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD:Assets/Prefabs/UI/Prefab_QuestPanel.prefab.meta
 guid: 6b89afcdc2ec9e545b81fa7373a65606
+=======
+guid: 6bdb5eb368843464fb87693c00889c1c
+>>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/Prefabs/UI/Prefab_QuestPanel.prefab.meta
 PrefabImporter:
   externalObjects: {}
   userData: 

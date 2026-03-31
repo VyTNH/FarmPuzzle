@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD:Assets/Prefabs/Farm/Prefab_CropEntity.prefab.meta
 guid: bb31020775f2d2b469c5e22f39f5834c
+=======
+guid: 20f625943ef6bf846973741977685e6d
+>>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/Prefabs/Farm/Prefab_CropEntity.prefab.meta
 PrefabImporter:
   externalObjects: {}
   userData: 

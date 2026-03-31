@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD:Assets/ScriptableObjects/Meta/SO_Quest_Harvest10.asset.meta
 guid: 8c3ba77d9fcdc414fafbe455215dfac2
+=======
+guid: 7719b6605e89e5f4daa6123ca675fdb6
+>>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/ScriptableObjects/Meta/SO_Quest_Harvest10.asset.meta
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 0

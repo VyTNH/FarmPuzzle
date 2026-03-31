@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD:Assets/Prefabs/Core/Prefab_GameManager.prefab.meta
 guid: 76d6b492f6ea3944db4ffc86624cad64
+=======
+guid: fb6c5be824118774e8ca00d55dc05b41
+>>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/Prefabs/Core/Prefab_GameManager.prefab.meta
 PrefabImporter:
   externalObjects: {}
   userData: 

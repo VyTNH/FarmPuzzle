@@ -1,4 +1,7 @@
 ﻿<Solution>
   <Project Path="Assembly-CSharp.csproj" />
+<<<<<<< HEAD:FarmPuzzle.slnx
   <Project Path="Assembly-CSharp-Editor.csproj" />
+=======
+>>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/FarmPuzzle.slnx
 </Solution>

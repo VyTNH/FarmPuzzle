@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD:Assets/ScriptableObjects/CropsAndSeeds.meta
 guid: 48cbd576b54b2404a92f6b57b79f9163
+=======
+guid: d7bae384282fdfc448e520a7c8407353
+>>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/ScriptableObjects/CropsAndSeeds.meta
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}
