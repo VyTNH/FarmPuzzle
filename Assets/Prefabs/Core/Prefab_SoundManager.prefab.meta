@@ -1,9 +1,13 @@
 fileFormatVersion: 2
 <<<<<<< HEAD:Assets/Prefabs/Core/Prefab_SoundManager.prefab.meta
+<<<<<<< HEAD:Assets/Prefabs/Core/Prefab_SoundManager.prefab.meta
 guid: 821f310a5995ffd4bb2b955364404139
 =======
 guid: bf36851a245d7104d99f0de108a0ae94
 >>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/Prefabs/Core/Prefab_SoundManager.prefab.meta
+=======
+guid: 20e8a01ab91b8b14ba63af4a6f807f46
+>>>>>>> origin/feat/Vuong-Tertris:FarmPuzzle/Assets/Prefabs/Core/Prefab_SoundManager.prefab.meta
 PrefabImporter:
   externalObjects: {}
   userData: 

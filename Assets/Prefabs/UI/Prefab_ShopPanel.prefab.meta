@@ -1,9 +1,13 @@
 fileFormatVersion: 2
 <<<<<<< HEAD:Assets/Prefabs/UI/Prefab_ShopPanel.prefab.meta
+<<<<<<< HEAD:Assets/Prefabs/UI/Prefab_ShopPanel.prefab.meta
 guid: ac843b70b89b8874783b9110e2eed24c
 =======
 guid: 5d666d08c60d8ed4e8d4628a77b7d00e
 >>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/Prefabs/UI/Prefab_ShopPanel.prefab.meta
+=======
+guid: 8cb076d2b4d298b4e8e6199ff6b0d319
+>>>>>>> origin/feat/Vuong-Tertris:FarmPuzzle/Assets/Prefabs/UI/Prefab_ShopPanel.prefab.meta
 PrefabImporter:
   externalObjects: {}
   userData: 

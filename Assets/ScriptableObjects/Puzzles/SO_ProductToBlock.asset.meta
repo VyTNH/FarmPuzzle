@@ -1,9 +1,13 @@
 fileFormatVersion: 2
 <<<<<<< HEAD:Assets/ScriptableObjects/Puzzles/SO_ProductToBlock.asset.meta
+<<<<<<< HEAD:Assets/ScriptableObjects/Puzzles/SO_ProductToBlock.asset.meta
 guid: 26a3cd31f0eca4c4696edac29970bcfc
 =======
 guid: 1d48932e6e626ac47a23348210c13f6a
 >>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/ScriptableObjects/Puzzles/SO_ProductToBlock.asset.meta
+=======
+guid: 99313cde554e7ae4aade9822c4273460
+>>>>>>> origin/feat/Vuong-Tertris:FarmPuzzle/Assets/ScriptableObjects/Puzzles/SO_ProductToBlock.asset.meta
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 0

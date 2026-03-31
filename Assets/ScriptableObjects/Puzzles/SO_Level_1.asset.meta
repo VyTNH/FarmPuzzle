@@ -1,5 +1,6 @@
 fileFormatVersion: 2
 <<<<<<< HEAD:Assets/ScriptableObjects/Puzzles/SO_Level_1.asset.meta
+<<<<<<< HEAD:Assets/ScriptableObjects/Puzzles/SO_Level_1.asset.meta
 guid: 8b11159643ed5ea4491700036e11d2d2
 NativeFormatImporter:
   externalObjects: {}
@@ -10,6 +11,12 @@ NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 0
 >>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/ScriptableObjects/Puzzles/SO_Level_1.asset.meta
+=======
+guid: 1a264797384224941a530fb1a207887f
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 0
+>>>>>>> origin/feat/Vuong-Tertris:FarmPuzzle/Assets/ScriptableObjects/Puzzles/SO_Level_1.asset.meta
   userData: 
   assetBundleName: 
   assetBundleVariant: 

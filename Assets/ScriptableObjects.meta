@@ -1,9 +1,13 @@
 fileFormatVersion: 2
 <<<<<<< HEAD:Assets/ScriptableObjects.meta
+<<<<<<< HEAD:Assets/ScriptableObjects.meta
 guid: 36810cd70d2aac9429f92b992190a58c
 =======
 guid: 014cefed44bef2c40886c5ff858abf90
 >>>>>>> origin/feat/Vy-QuestSystem:FarmPuzzle/Assets/ScriptableObjects.meta
+=======
+guid: 53373e33dbe9bf444b7ea1b86e042d04
+>>>>>>> origin/feat/Vuong-Tertris:FarmPuzzle/Assets/ScriptableObjects.meta
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}
