@@ -15,7 +15,8 @@ MonoBehaviour:
   totalTimeToHarvest: 300
   productID: product_04
   growthStages:
-  - {fileID: 21300000, guid: 878441973089d3d4ea7c6569cd3edaa1, type: 3}
-  - {fileID: 21300000, guid: 878441973089d3d4ea7c6569cd3edaa1, type: 3}
+  - {fileID: 21300000, guid: b79fcc90a85f6fd4e86852fa45b5e2e0, type: 3}
+  - {fileID: 21300000, guid: dc4a384041f1d7740b414176a84270c8, type: 3}
   - {fileID: 21300000, guid: 878441973089d3d4ea7c6569cd3edaa1, type: 3}
   yieldAmount: 1
+  cropPrefab: {fileID: 5316346104978839087, guid: 88b6329619760004aa053108d2ca66c2, type: 3}

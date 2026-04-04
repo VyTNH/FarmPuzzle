@@ -155,7 +155,9 @@ public class GodAdminWindow : EditorWindow
             case 1: // Quản Lý
                 GUILayout.Label("Live Dashboard Tetris", EditorStyles.boldLabel);
                 
-                var tetrisMgr = FindObjectOfType<FarmPuzzle.Tetris.TetrisManager>();
+                //var tetrisMgr = FindObjectOfType<FarmPuzzle.Tetris.TetrisManager>();
+                var tetrisMgr = FindFirstObjectByType<FarmPuzzle.Tetris.TetrisManager>();
+
                 if (tetrisMgr == null) {
                     EditorGUILayout.HelpBox("CHƯA BẬT GAME HOẶC CHƯA MỞ TETRIS!\nHãy ấn Play và đảm bảo Canvas Tetris đang bật để theo dõi dữ liệu.", MessageType.Warning);
                 } else {

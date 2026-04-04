@@ -18,8 +18,6 @@ public class LandPlot : MonoBehaviour
 
     [Header("Care System")]
     public CropNeedType currentNeed = CropNeedType.None;
-    public SpriteRenderer needIconRenderer;
-    public Sprite waterSprite, pestSprite, weedSprite, harvestSprite;
 
     private SpriteRenderer plantRenderer;
     private SpriteRenderer tileRenderer; 
@@ -66,13 +64,11 @@ public class LandPlot : MonoBehaviour
             if (isHarvestableNow != _wasHarvestable)
             {
                 _wasHarvestable = isHarvestableNow;
-                UpdateNeedUI();
             }
             
             if (currentNeed != _cropGrowth.CurrentNeed)
             {
                 currentNeed = _cropGrowth.CurrentNeed;
-                UpdateNeedUI();
             }
         }
     }
@@ -179,27 +175,7 @@ public class LandPlot : MonoBehaviour
         if (currentNeed == careType)
         {
             currentNeed = CropNeedType.None;
-            UpdateNeedUI();
             if (_cropGrowth != null) _cropGrowth.ResolveNeed(careType);
-        }
-    }
-
-    public void UpdateNeedUI()
-    {
-        if (needIconRenderer == null) return;
-
-        if (CanHarvest())
-        {
-            needIconRenderer.sprite = harvestSprite;
-            return;
-        }
-
-        switch (currentNeed)
-        {
-            case CropNeedType.Water: needIconRenderer.sprite = waterSprite; break;
-            case CropNeedType.Pest:  needIconRenderer.sprite = pestSprite; break;
-            case CropNeedType.Fertilizer: needIconRenderer.sprite = weedSprite; break;
-            default: needIconRenderer.sprite = null; break;
         }
     }
 

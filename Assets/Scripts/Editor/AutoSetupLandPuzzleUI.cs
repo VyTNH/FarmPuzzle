@@ -26,9 +26,6 @@ namespace FarmPuzzle.EditorTools
             // --- PHẦN 3: SETUP CONFIRM POPUP UI ---
             SetupConfirmPopupUI();
 
-            // --- PHẦN 4: SETUP CARE SYSTEM ---
-            SetupCareSystem();
-
             Debug.Log("<color=cyan>[Setup Tool]</color> 🔥 HOÀN TẤT CÀI ĐẶT! Sếp hãy kiểm tra Hierarchy xem đã có đủ các bộ phận chưa.");
         }
 
@@ -213,45 +210,6 @@ namespace FarmPuzzle.EditorTools
             Debug.Log("<color=green>+ Đã dựng xong Popup và Controller.</color>");
         }
 
-        private static void SetupCareSystem()
-        {
-            Debug.Log("[Setup Tool] Đang đồng bộ hệ thống Chăm sóc (Care System)...");
-            Sprite waterS = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Prefabs/Farm/Sprites/water-drop-in-pixel-art-style-vector-removebg-preview.png");
-            Sprite pestS  = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Prefabs/Farm/Sprites/lady_bug-removebg-preview.png");
-            Sprite weedS  = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Prefabs/Farm/Sprites/pngtree-pixel-art-green-grass-game-object-design-vector-png-image_16391302-removebg-preview.png");
-
-#if UNITY_2023_1_OR_NEWER
-            LandPlot[] plots = Object.FindObjectsByType<LandPlot>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-#else
-            LandPlot[] plots = Object.FindObjectsOfType<LandPlot>();
-#endif
-            foreach (var plot in plots)
-            {
-                SerializedObject so = new SerializedObject(plot);
-                so.FindProperty("waterSprite").objectReferenceValue = waterS;
-                so.FindProperty("pestSprite").objectReferenceValue = pestS;
-                so.FindProperty("weedSprite").objectReferenceValue = weedS;
-
-                if (plot.needIconRenderer == null)
-                {
-                    Transform iconT = plot.transform.Find("NeedIcon");
-                    if (iconT == null)
-                    {
-                        GameObject iconObj = new GameObject("NeedIcon");
-                        iconObj.transform.SetParent(plot.transform);
-                        iconObj.transform.localPosition = new Vector3(0, 1.2f, 0);
-                        iconObj.transform.localScale = new Vector3(0.5f, 0.5f, 1f);
-                        iconT = iconObj.transform;
-                    }
-                    SpriteRenderer sr = iconT.GetComponent<SpriteRenderer>();
-                    if (sr == null) sr = iconT.gameObject.AddComponent<SpriteRenderer>();
-                    sr.sortingOrder = 50; 
-                    so.FindProperty("needIconRenderer").objectReferenceValue = sr;
-                }
-                so.ApplyModifiedProperties();
-            }
-            Debug.Log($"<color=green>+ Đã đồng bộ xong {plots.Length} ô đất.</color>");
-        }
 
         private static GameObject CreateButton(string name, string label, Vector2 pos, Color bgColor, Transform parent)
         {
