@@ -13,7 +13,7 @@ namespace FarmPuzzle.LandPuzzle.Block
     /// - Scene: có EventSystem + Physics2DRaycaster trên Camera
     /// - Block GameObject: có BoxCollider2D (tự cập nhật sau BuildVisual)
     /// </summary>
-    [RequireComponent(typeof(BoxCollider2D))]
+    // [MỚI] Đã gỡ bỏ RequireComponent BoxCollider2D để dùng Composite Collider xịn hơn
     public class LandBlock : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerDownHandler
     {
         [Header("References")]
@@ -31,8 +31,8 @@ namespace FarmPuzzle.LandPuzzle.Block
 
         [Header("Drag Settings")]
         [Tooltip("Offset theo trục Y khi kéo (nâng block lên khỏi ngón tay)")]
-        [SerializeField] private float _dragYOffset = 1.5f;
-        [SerializeField] private float _dragScale = 1.1f;
+        [SerializeField] private float _dragYOffset = 0f; // Bỏ Offset kéo để trùng 100% tay người chơi
+        [SerializeField] private float _dragScale = 1.0f; // Kích thước giữ nguyên 100% khi kéo
         [SerializeField] private int _dragSortingOrder = 100;
         [SerializeField] private float _snapAnimSpeed = 20f;
 
@@ -64,13 +64,14 @@ namespace FarmPuzzle.LandPuzzle.Block
 
         private void BuildVisual()
         {
-            // Xóa visual cũ
             foreach (Transform child in transform)
                 Destroy(child.gameObject);
 
-            float cellSize = _gridBoard != null ? _gridBoard.CellSize : 1f;
-            float spacing  = _gridBoard != null ? _gridBoard.CellSpacing : 0.05f;
-            float step     = cellSize + spacing;
+            float cellSize = _gridBoard != null ? _gridBoard.CellSize : 2.0f;
+            float margin = _gridBoard != null ? _gridBoard.CellMargin : 0.1f;
+
+            float step = cellSize * (1f + margin);
+            float spacing = step - cellSize;
 
             int activeCount = _shapeData.GetActiveCellCount();
             _cellRenderers  = new SpriteRenderer[activeCount];
@@ -87,22 +88,33 @@ namespace FarmPuzzle.LandPuzzle.Block
 
                     // Vị trí local: col đi phải, row đi xuống
                     cellObj.transform.localPosition = new Vector3(c * step, -r * step, 0f);
-                    cellObj.transform.localScale     = Vector3.one * cellSize;
+                    cellObj.transform.localScale     = Vector3.one * cellSize; // Đảm bảo cell nhận đúng CellSize
 
                     var sr       = cellObj.AddComponent<SpriteRenderer>();
                     sr.sprite    = MakeWhiteSprite();
                     sr.color     = _shapeData.blockColor;
+                    sr.sortingLayerName = "Puzzle"; // Đảm bảo luôn nằm ở layer Puzzle
                     sr.sortingOrder = 1;
+
+                    // MỚI: Thêm Collider cho từng ô con và đánh dấu dùng cho Composite (Chuẩn Unity 6)
+                    var box = cellObj.AddComponent<BoxCollider2D>();
+                    box.compositeOperation = Collider2D.CompositeOperation.Merge;
 
                     _cellRenderers[idx++] = sr;
                 }
             }
+            // 🔍 Kiểm tra Scale đồng nhất để đảm bảo căn chỉnh đúng
+            if (!transform.TryGetUniformScale(out float s))
+            {
+                Debug.LogError($"[LandBlock] Scale của '{gameObject.name}' không đồng nhất! (X:{transform.localScale.x}, Y:{transform.localScale.y}). Vui lòng để Vector3(x, x, x).");
+                return;
+            }
 
-            // Căn pivot về center của toàn shape
-            CenterPivotOffset(cellSize, spacing);
+            // Căn pivot về center của toàn shape (Dùng một nửa scale đồng nhất sếp đã kiểm tra)
+            CenterPivotOffset(s, spacing);
 
             // Cập nhật BoxCollider2D bao phủ toàn shape
-            UpdateCollider(cellSize, spacing);
+            UpdateCollider(s, spacing);
         }
 
         /// <summary>
@@ -119,15 +131,29 @@ namespace FarmPuzzle.LandPuzzle.Block
         }
 
         /// <summary>
-        /// Resize BoxCollider2D để bao phủ toàn bộ shape.
+        /// Thiết lập CompositeCollider2D trên cha để gộp các collider con lại.
         /// </summary>
         private void UpdateCollider(float cellSize, float spacing)
         {
-            var col = GetComponent<BoxCollider2D>();
-            float step = cellSize + spacing;
-            col.size   = new Vector2(_shapeData.columns * step - spacing,
-                                     _shapeData.rows    * step - spacing);
-            col.offset = Vector2.zero; // center đã được căn ở BuildVisual
+            // 1. Loại bỏ BoxCollider2D cũ trên cha (nếu có và KHÔNG tham gia Composite) để tránh xung đột
+            var oldBox = GetComponent<BoxCollider2D>();
+            if (oldBox != null && oldBox.compositeOperation == Collider2D.CompositeOperation.None) 
+                DestroyImmediate(oldBox);
+
+            // 2. Đảm bảo có Rigidbody2D (bắt buộc cho Composite)
+            var rb = GetComponent<Rigidbody2D>();
+            if (rb == null) rb = gameObject.AddComponent<Rigidbody2D>();
+            rb.bodyType = RigidbodyType2D.Static;
+
+            // 3. Đảm bảo có CompositeCollider2D
+            var composite = GetComponent<CompositeCollider2D>();
+            if (composite == null) composite = gameObject.AddComponent<CompositeCollider2D>();
+            
+            // CHỈNH LẠI: Dùng Polygons để click vào giữa khối gạch cũng dính, thay vì Outlines (chỉ dính ở mép)
+            composite.geometryType = CompositeCollider2D.GeometryType.Polygons;
+            composite.generationType = CompositeCollider2D.GenerationType.Synchronous; // Cập nhật ngay lập tức
+            
+            Debug.Log($"[LandBlock] Đã gộp {transform.childCount} ô con vào Composite Collider (Dạng Polygon).");
         }
 
         // =====================================================================
@@ -155,11 +181,11 @@ namespace FarmPuzzle.LandPuzzle.Block
             // ─── Vị trí cursor trong world space ───
             Vector3 cursorWorld = GetCursorWorldPos(eventData);
 
-            // ─── Nâng block lên khỏi ngón tay ───
+            // ─── Đặt block KHỚP 100% vào ngón tay (không nâng Y) ───
             Vector3 blockWorld  = cursorWorld + new Vector3(0f, _dragYOffset, 0f);
             transform.position  = blockWorld;
 
-            // ─── Preview: anchor = góc trên-trái của shape trong grid ───
+            // ─── Preview: anchor ───
             Vector2Int anchor = GetAnchorFromBlockCenter(blockWorld);
             _gridBoard.ShowPlacementPreview(_shapeData, anchor);
         }
@@ -182,13 +208,19 @@ namespace FarmPuzzle.LandPuzzle.Block
                 Debug.Log($"[LandBlock] ✅ Placed shape '{_shapeData.name}' at anchor {anchor}");
                 _gridBoard.PlaceShape(_shapeData, anchor);
                 _isPlaced = true;
+
+                // 🛡️ BƯỚC ĐỆM: Khởi hành hoạt ảnh trước khi báo cáo kết quả
+                if (gameObject.activeInHierarchy)
+                    StartCoroutine(SnapAndHide());
+
+                // MỚI: Báo cáo kết quả sau cùng
                 OnBlockPlaced?.Invoke(this, _shapeData, anchor);
-                StartCoroutine(SnapAndHide());
             }
             else
             {
                 Debug.Log($"[LandBlock] ❌ Cannot place at {anchor} — returning to origin");
-                StartCoroutine(ReturnToOrigin());
+                if (gameObject.activeInHierarchy)
+                    StartCoroutine(ReturnToOrigin());
             }
         }
 
@@ -219,15 +251,25 @@ namespace FarmPuzzle.LandPuzzle.Block
         /// và bottom của shape = center - (rows-1)/2 grid rows:
         ///   anchorRow = centerCell.y - (shape.rows - 1) / 2
         /// </summary>
+        /// <summary>
+        /// Tính toán tọa độ Anchor (Góc dưới-trái) từ vị trí trung tâm World của khối gạch.
+        /// GridBoard coi anchor là (x: left-most, y: bottom-most).
+        /// </summary>
         private Vector2Int GetAnchorFromBlockCenter(Vector3 blockCenterWorld)
         {
-            Vector2Int centerCell = _gridBoard.WorldToGridPosition(blockCenterWorld);
+            // Lấy scale của bàn cờ để bù trừ tỉ lệ
+            float gridScale = _gridBoard.transform.localScale.x;
+            float step = _gridBoard.CellSize * (1f + _gridBoard.CellMargin) * gridScale;
+            
+            // Tính toán độ lệch từ Tâm đến ô Góc (Bottom-Left) chuẩn xác theo tỉ lệ World
+            float offsetX = (_shapeData.columns - 1) * step / 2f;
+            float offsetY = (_shapeData.rows    - 1) * step / 2f;
 
-            // anchor.y = bottom row of shape in grid (shape bottom-visual = lowest gridRow)
-            int anchorCol = centerCell.x - Mathf.FloorToInt(_shapeData.columns / 2f);
-            int anchorRow = centerCell.y - Mathf.FloorToInt((_shapeData.rows - 1) / 2f);
+            // Vị trí World thực tế của ô dưới trái của Shape
+            Vector3 bottomLeftCellWorld = blockCenterWorld - new Vector3(offsetX, offsetY, 0f);
 
-            return new Vector2Int(anchorCol, anchorRow);
+            // Hỏi GridBoard xem cái tọa độ World đó là ô nào trong Grid
+            return _gridBoard.WorldToGridPosition(bottomLeftCellWorld);
         }
 
         // =====================================================================
@@ -286,6 +328,22 @@ namespace FarmPuzzle.LandPuzzle.Block
             tex.SetPixels32(pixels);
             tex.Apply();
             return Sprite.Create(tex, new Rect(0, 0, 4, 4), new Vector2(0.5f, 0.5f), 4f);
+        }
+    }
+
+    // --- PHƯƠNG THỨC MỞ RỘNG (EXTENSION) ---
+    public static class TransformExtensions
+    {
+        public static bool TryGetUniformScale(this Transform t, out float scaleValue)
+        {
+            Vector3 scale = t.localScale;
+            if (Mathf.Approximately(scale.x, scale.y) && Mathf.Approximately(scale.x, scale.z))
+            {
+                scaleValue = scale.x;
+                return true;
+            }
+            scaleValue = 0f;
+            return false;
         }
     }
 }

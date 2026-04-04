@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 public class CropProgressBar : MonoBehaviour
 {
@@ -42,9 +42,18 @@ public class CropProgressBar : MonoBehaviour
         SetVisible(false); // Ẩn khi chưa trồng
     }
 
+    private float lastLogTime = 0f;
+
     void Update()
     {
-        if (landPlot == null || !landPlot.isOccupied)
+        if (landPlot == null)
+        {
+            SetVisible(false);
+            if (Time.time - lastLogTime > 2f) { Debug.LogWarning("[CropProgressBar] landPlot is null!"); lastLogTime = Time.time; }
+            return;
+        }
+
+        if (!landPlot.isOccupied)
         {
             SetVisible(false);
             return;
@@ -52,6 +61,13 @@ public class CropProgressBar : MonoBehaviour
 
         SetVisible(true);
         float progress = landPlot.GetGrowthProgress();
+        
+        if (Time.time - lastLogTime > 2f)
+        {
+            Debug.Log($"[CropProgressBar] Plot: {landPlot.plotID} | Occupied: true | Crop: {(landPlot.GetCropData() != null ? landPlot.GetCropData().productID : "NULL")} | Progress: {progress * 100:F1}%");
+            lastLogTime = Time.time;
+        }
+
         UpdateBar(progress);
     }
 

@@ -19,8 +19,8 @@ namespace FarmPuzzle.LandPuzzle.Grid
     {
         [Header("Grid Settings")]
         [SerializeField] private int   _gridSize    = 10;
-        [SerializeField] private float _cellSize    = 1f;
-        [SerializeField] private float _cellSpacing = 0.05f;
+        [SerializeField] private float _cellSize    = 2.0f; // Chỉnh về 2.0 khớp với tỉ lệ Block(Clone)
+        [SerializeField] private float _cellMargin  = 0.1f; // 10% lề để lưới khít
 
         [Header("Prefabs")]
         [SerializeField] private GameObject _cellPrefab;
@@ -46,7 +46,7 @@ namespace FarmPuzzle.LandPuzzle.Grid
         // ── Properties ──
         public int   GridSize   => _gridSize;
         public float CellSize   => _cellSize;
-        public float CellSpacing=> _cellSpacing;
+        public float CellMargin => _cellMargin;
 
         // =====================================================================
         // INITIALIZATION
@@ -76,32 +76,36 @@ namespace FarmPuzzle.LandPuzzle.Grid
 
         private void CreateCells()
         {
-            float step      = _cellSize + _cellSpacing;
-            float totalSize = _gridSize * step - _cellSpacing;
-            Vector3 startPos = transform.position - new Vector3(totalSize / 2f, totalSize / 2f, 0f);
+            // Tỷ lệ cố định: Khoảng cách giữa các tâm ô (Step)
+            float step = _cellSize * (1f + _cellMargin);
+            
+            // Tính toán điểm bắt đầu (Local) sao cho lưới nằm giữa bàn cờ
+            float totalSize = (_gridSize - 1) * step;
+            Vector3 startOffset = new Vector3(-totalSize / 2f, -totalSize / 2f, 0f);
 
             for (int row = 0; row < _gridSize; row++)
             {
                 for (int col = 0; col < _gridSize; col++)
                 {
-                    Vector3 cellPos = startPos + new Vector3(
-                        col * step + _cellSize * 0.5f,
-                        row * step + _cellSize * 0.5f,
-                        0f
-                    );
+                    // Sử dụng Local Position thay vì World Position
+                    Vector3 localPos = startOffset + new Vector3(col * step, row * step, 0f);
 
                     GameObject cellObj;
                     if (_cellPrefab != null)
                     {
-                        cellObj = Instantiate(_cellPrefab, cellPos, Quaternion.identity, transform);
+                        // Khởi tạo và đưa vào làm con của GridBoard ngay lập tức
+                        cellObj = Instantiate(_cellPrefab, transform);
+                        cellObj.transform.localPosition = localPos;
                     }
                     else
                     {
                         cellObj = new GameObject($"Cell_{row}_{col}");
-                        cellObj.transform.position = cellPos;
-                        cellObj.transform.SetParent(transform, true);
-                        cellObj.transform.localScale = Vector3.one * _cellSize;
+                        cellObj.transform.SetParent(transform, false);
+                        cellObj.transform.localPosition = localPos;
                     }
+
+                    // Ép Scale cố định dựa trên CellSize để lấp đầy không gian
+                    cellObj.transform.localScale = Vector3.one * _cellSize;
 
                     var cell = cellObj.GetComponent<GridCell>() ?? cellObj.AddComponent<GridCell>();
                     cell.Initialize(row, col);
@@ -335,23 +339,30 @@ namespace FarmPuzzle.LandPuzzle.Grid
 
         public Vector2Int WorldToGridPosition(Vector3 worldPos)
         {
-            float step      = _cellSize + _cellSpacing;
-            float totalSize = _gridSize * step - _cellSpacing;
-            Vector3 startPos = transform.position - new Vector3(totalSize / 2f, totalSize / 2f, 0f);
+            // Chuyển tọa độ thế giới về tọa độ địa phương của GridBoard
+            Vector3 localPos = transform.InverseTransformPoint(worldPos);
+            
+            float step = _cellSize * (1f + _cellMargin);
+            float totalSize = (_gridSize - 1) * step;
+            Vector3 startOffset = new Vector3(-totalSize / 2f, -totalSize / 2f, 0f);
 
-            Vector3 localPos = worldPos - startPos;
-            int col = Mathf.RoundToInt((localPos.x - _cellSize * 0.5f) / step);
-            int row = Mathf.RoundToInt((localPos.y - _cellSize * 0.5f) / step);
+            Vector3 relativePos = localPos - startOffset;
+            
+            // Cộng thêm nửa bước để lấy tâm ô chính xác hơn
+            int col = Mathf.RoundToInt(relativePos.x / step);
+            int row = Mathf.RoundToInt(relativePos.y / step);
+            
             return new Vector2Int(col, row);
         }
 
         public Vector3 GridToWorldPosition(int row, int col)
         {
-            float step      = _cellSize + _cellSpacing;
-            float totalSize = _gridSize * step - _cellSpacing;
-            Vector3 startPos = transform.position - new Vector3(totalSize / 2f, totalSize / 2f, 0f);
-            return startPos + new Vector3(col * step + _cellSize * 0.5f,
-                                          row * step + _cellSize * 0.5f, 0f);
+            float step = _cellSize * (1f + _cellMargin);
+            float totalSize = (_gridSize - 1) * step;
+            Vector3 startOffset = new Vector3(-totalSize / 2f, -totalSize / 2f, 0f);
+
+            Vector3 localPos = startOffset + new Vector3(col * step, row * step, 0f);
+            return transform.TransformPoint(localPos);
         }
 
         public bool IsInBounds(int row, int col)

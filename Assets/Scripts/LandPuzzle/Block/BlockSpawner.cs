@@ -17,7 +17,7 @@ namespace FarmPuzzle.LandPuzzle.Block
 
         [Header("Spawn Settings")]
         [SerializeField] private Transform[] _spawnSlots;
-        [SerializeField] private float _spawnScale = 0.6f;
+        //[SerializeField] private float _spawnScale = 0.6f;
 
         // --- State ---
         private LevelData _currentLevel;
@@ -107,7 +107,8 @@ namespace FarmPuzzle.LandPuzzle.Block
                 collider.size = new Vector2(2f, 2f);
             }
 
-            blockObj.transform.localScale = Vector3.one * _spawnScale;
+                // Đặt Scale của Parent bằng gốc GridBoard (Child cells bên trong LandBlock đã tự nạp CellSize)
+                blockObj.transform.localScale = _gridBoard.transform.localScale;
 
             LandBlock block = blockObj.GetComponent<LandBlock>();
             if (block == null) block = blockObj.AddComponent<LandBlock>();

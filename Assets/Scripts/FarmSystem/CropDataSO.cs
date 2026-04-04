@@ -7,4 +7,5 @@ public class CropDataSO : ScriptableObject
     public string productID;         // ID Nông sản nhận được (để lưu DB)
     public Sprite[] growthStages;    // Các hình ảnh giai đoạn lớn 
     public int yieldAmount;          // Sản lượng thu hoạch 
+    public GameObject cropPrefab;    // Prefab cây trồng thực tế gắn trên scene
 }

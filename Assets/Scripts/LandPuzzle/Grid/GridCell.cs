@@ -35,6 +35,7 @@ namespace FarmPuzzle.LandPuzzle.Grid
                 _spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
                 _spriteRenderer.sprite = MakeSprite();
             }
+            _spriteRenderer.sortingLayerName = "Puzzle";
             _spriteRenderer.sortingOrder = 0;
 
             // Tạo highlight child
@@ -48,6 +49,7 @@ namespace FarmPuzzle.LandPuzzle.Grid
                 _highlightRenderer = go.AddComponent<SpriteRenderer>();
                 _highlightRenderer.sprite       = MakeSprite();
                 _highlightRenderer.color        = Color.clear;
+                _highlightRenderer.sortingLayerName = "Puzzle";
                 _highlightRenderer.sortingOrder = 2;
             }
             else

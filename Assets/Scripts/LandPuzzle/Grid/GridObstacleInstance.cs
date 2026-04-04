@@ -41,6 +41,7 @@ namespace FarmPuzzle.LandPuzzle.Grid
                 _obstacleRenderer.sprite = MakeSprite();
             }
 
+            _obstacleRenderer.sortingLayerName = "Puzzle";
             _obstacleRenderer.sortingOrder = 2;
             UpdateColor();
         }

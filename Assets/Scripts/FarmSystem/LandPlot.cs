@@ -1,42 +1,49 @@
 using UnityEngine;
 using System;
-using static CropStatus;
+using FarmPuzzle.FarmSystem.Crop;
 
+[RequireComponent(typeof(BoxCollider2D))] 
 public class LandPlot : MonoBehaviour
 {
     public bool isOccupied = false;
     public bool isLocked = false;
-    public string plantedSeedID = ""; // ID hạt giống đã gieo (để lưu/load từ DB)
+    public string plotID; 
+    public string plantedSeedID = ""; 
+    public DateTime plantedTime; 
+    
     private CropDataSO currentCrop;
-    private DateTime plantedTime;
+
+    [Header("Puzzle Settings (UC3)")]
+    public FarmPuzzle.LandPuzzle.Data.LevelData puzzleLevel;
 
     [Header("Care System")]
-    public CropNeed currentNeed = CropNeed.None;
+    public CropNeedType currentNeed = CropNeedType.None;
     public SpriteRenderer needIconRenderer;
-    public Sprite waterSprite, pestSprite, weedSprite;
+    public Sprite waterSprite, pestSprite, weedSprite, harvestSprite;
 
     private SpriteRenderer plantRenderer;
-    private SpriteRenderer tileRenderer; // Renderer của chính ô đất (để đổi màu khóa/mở)
+    private SpriteRenderer tileRenderer; 
     private Color originalTileColor;
-    public bool needHasSpawned = false;
+    
+    private GameObject _spawnedCropObj;
+    private FarmPuzzle.FarmSystem.Crop.CropGrowth _cropGrowth;
+    private bool _wasHarvestable = false;
 
     public CropDataSO GetCropData() => currentCrop;
     public DateTime GetPlantedTime() => plantedTime;
 
     void Awake()
     {
-        // Lấy renderer của chính ô đất để đổi màu khi lock/unlock
+        BoxCollider2D col = GetComponent<BoxCollider2D>();
+        if (col != null) col.isTrigger = true; 
+
         tileRenderer = GetComponent<SpriteRenderer>();
         if (tileRenderer == null)
         {
             var meshRenderer = GetComponent<MeshRenderer>();
-            if (meshRenderer != null)
-                originalTileColor = meshRenderer.material.color;
+            if (meshRenderer != null) originalTileColor = meshRenderer.material.color;
         }
-        else
-        {
-            originalTileColor = tileRenderer.color;
-        }
+        else originalTileColor = tileRenderer.color;
 
         Transform visualChild = transform.Find("PlantVisual");
         if (visualChild == null)
@@ -46,59 +53,40 @@ public class LandPlot : MonoBehaviour
             plantObj.transform.localPosition = new Vector3(0, 0, -0.1f);
             plantRenderer = plantObj.AddComponent<SpriteRenderer>();
         }
-        else
-        {
-            plantRenderer = visualChild.GetComponent<SpriteRenderer>();
-        }
+        else plantRenderer = visualChild.GetComponent<SpriteRenderer>();
 
-        // Cập nhật visual khóa ngay khi Awake
         ApplyLockVisual();
     }
-
-    // ======= HỆ THỐNG KHÓA Ô ĐẤT (UC3 - Land Puzzle) =======
-    public void LockPlot()
-    {
-        isLocked = true;
-        ApplyLockVisual();
-    }
-
-    public void UnlockPlot()
-    {
-        isLocked = false;
-        ApplyLockVisual();
-        Debug.Log($"<color=yellow>[Mở đất]</color> Ô {gameObject.name} đã được mở khóa!");
-    }
-
-    private void ApplyLockVisual()
-    {
-        // Ô khóa → tối xám đi, ô mở → trả về màu gốc
-        Color targetColor = isLocked ? new Color(0.25f, 0.22f, 0.2f, 1f) : originalTileColor;
-        
-        if (tileRenderer != null)
-        {
-            tileRenderer.color = targetColor;
-        }
-        else
-        {
-            var meshRenderer = GetComponent<MeshRenderer>();
-            if (meshRenderer != null)
-                meshRenderer.material.color = targetColor;
-        }
-    }
-
-    // ======= END KHÓA =======
 
     void Update()
     {
-        if (!isOccupied || currentCrop == null) return;
-
-        float progress = GetGrowthProgress();
-        UpdateVisualByProgress(progress);
-
-        if (progress >= 0.5f && !needHasSpawned && currentNeed == CropNeed.None)
+        if (isOccupied && _cropGrowth != null)
         {
-            GenerateRandomNeed();
-            needHasSpawned = true;
+            bool isHarvestableNow = CanHarvest();
+            if (isHarvestableNow != _wasHarvestable)
+            {
+                _wasHarvestable = isHarvestableNow;
+                UpdateNeedUI();
+            }
+            
+            if (currentNeed != _cropGrowth.CurrentNeed)
+            {
+                currentNeed = _cropGrowth.CurrentNeed;
+                UpdateNeedUI();
+            }
+        }
+    }
+
+    public void LockPlot() { isLocked = true; ApplyLockVisual(); }
+    public void UnlockPlot() { isLocked = false; ApplyLockVisual(); }
+
+    public void ApplyLockVisual()
+    {
+        Color targetColor = isLocked ? new Color(0.25f, 0.22f, 0.2f, 1f) : originalTileColor;
+        if (tileRenderer != null) tileRenderer.color = targetColor;
+        else {
+            var meshRenderer = GetComponent<MeshRenderer>();
+            if (meshRenderer != null) meshRenderer.material.color = targetColor;
         }
     }
 
@@ -111,136 +99,151 @@ public class LandPlot : MonoBehaviour
 
     public bool CanHarvest()
     {
-        if (!isOccupied || currentCrop == null) return false;
-        return GetGrowthProgress() >= 1f && currentNeed == CropNeed.None;
+        if (!isOccupied || _cropGrowth == null) return false;
+        return _cropGrowth.IsHarvestable;
     }
 
-    public void Plant(SeedItemSO seed)
+    public bool Plant(SeedItemSO seed)
     {
-        if (isOccupied) return;
-        if (isLocked)
+        if (isOccupied || isLocked || seed == null) 
         {
-            Debug.LogWarning($"Ô đất {gameObject.name} đang bị khóa! Hãy chơi Land Puzzle để mở.");
-            return;
+            Debug.LogWarning($"<color=orange>[LandPlot]</color> Từ chối gieo hạt tại ô <b>{plotID}</b>. Lý do: Đã có cây({isOccupied}), Đang khóa({isLocked}), Hạt giống NULL({seed == null})");
+            return false;
         }
+
+        Debug.Log($"<color=cyan>[LandPlot]</color> Khởi động quy trình gieo hạt <b>{seed.seedName}</b> cho ô {plotID}.");
 
         currentCrop = seed.cropData;
-        plantedSeedID = seed.seedID; // Ghi nhớ ID hạt giống để lưu DB
+        plantedSeedID = seed.seedID;
         plantedTime = DateTime.UtcNow;
-        isOccupied = true;
-        needHasSpawned = false;
-        currentNeed = CropNeed.None;
-
-        UpdateVisualByProgress(0f);
-        UpdateNeedUI();
-    }
-
-    public void Harvest()
-    {
-        if (!CanHarvest())
+        
+        bool success = SpawnCropVisual();
+        if (success)
         {
-            Debug.Log("Chưa thể thu hoạch! Kiểm tra cây đã chín và đã chăm sóc chưa.");
-            return;
-        }
-
-        // --- LIÊN KẾT DATAMANAGER & QUESTMANAGER (Bước 2) ---
-        if (DataManager.Instance != null && currentCrop != null && !string.IsNullOrEmpty(currentCrop.productID))
-        {
-            // 1. Thêm thu hoạch vào tuí đồ (Database)
-            DataManager.Instance.AddItem(currentCrop.productID, currentCrop.yieldAmount);
-            
-            // 2. Chuyển thông tin cho QuestManager để tính điểm tiến độ nhiệm vụ
-            if (FarmPuzzle.Meta.QuestManager.Instance != null)
-            {
-                FarmPuzzle.Meta.QuestManager.Instance.UpdateProgress(currentCrop.productID, currentCrop.yieldAmount);
-            }
-        }
-
-        Debug.Log($"Thu hoạch được: {currentCrop.yieldAmount} nông sản ({ (currentCrop != null ? currentCrop.productID : "None") })");
-        ClearPlot();
-    }
-
-    // Chăm sóc thủ công — gọi khi player click vào cây ở đúng mode
-    public void ApplyCare(CropNeed careType)
-    {
-        if (currentNeed == careType)
-        {
-            ClearNeed();
-            Debug.Log($"Đã chăm sóc xong: {careType}");
+            isOccupied = true;
+            if (plantRenderer != null) plantRenderer.gameObject.SetActive(false);
+            Debug.Log($"<color=green>[LandPlot]</color> Logic nội bộ hoàn tất: Ô <b>{plotID}</b> đã ở trạng thái Đang trồng.");
+            return true;
         }
         else
         {
-            Debug.Log($"Sai loại chăm sóc! Cây cần: {currentNeed}, bạn dùng: {careType}");
+            Debug.LogError($"<color=red>[LandPlot]</color> Sinh cây thất bại tại ô {plotID}. Đã reset dữ liệu ô đất.");
+            // Trả về trạng thái trống nếu sinh cây thất bại (ko tìm thấy file prefab...)
+            currentCrop = null;
+            plantedSeedID = "";
+            return false;
         }
     }
 
-    public void ClearNeed()
+    private bool SpawnCropVisual()
     {
-        currentNeed = CropNeed.None;
-        UpdateNeedUI();
+        if (currentCrop == null || string.IsNullOrEmpty(currentCrop.productID)) {
+             Debug.LogWarning($"<color=red>[LandPlot]</color> Lỗi nghiêm trọng: Ô '{plotID}' thiếu ProductID trong CropDataSO!");
+             return false;
+        }
+
+        string prefabPath = "Crop_" + currentCrop.productID;
+        Debug.Log($"<color=cyan>[LandPlot]</color> Đang tải Prefab từ Resources: <b>{prefabPath}</b>");
+
+        try {
+            // Lấy từ SO trước, nếu không có mới tìm bằng chuỗi.
+            GameObject prefab = currentCrop.cropPrefab != null ? currentCrop.cropPrefab : Resources.Load<GameObject>(prefabPath);
+            if (prefab != null)
+            {
+                if (_spawnedCropObj != null) Destroy(_spawnedCropObj);
+                _spawnedCropObj = Instantiate(prefab, transform.position, Quaternion.identity, transform);
+                _cropGrowth = _spawnedCropObj.GetComponent<FarmPuzzle.FarmSystem.Crop.CropGrowth>();
+                
+                var dbModel = new FarmPuzzle.Core.Database.CropDataModel {
+                    ProductID = currentCrop.productID,
+                    GrowSeconds = (int)currentCrop.totalTimeToHarvest
+                };
+                _cropGrowth.Initialize(dbModel, plantedTime.Ticks);
+                _cropGrowth.ShowNeed(currentNeed);
+                
+                Debug.Log($"<color=green>[LandPlot]</color> Đã Instantiate vật thể cây trồng thành công tại {transform.position}.");
+                return true;
+            }
+            else {
+                Debug.LogError($"<color=red>[LandPlot]</color> KHÔNG TÌM THẤY file Prefab <b>'{prefabPath}'</b> trong thư mục Resources! Hãy kiểm tra lại tên file.");
+                return false;
+            }
+        } catch (Exception e) { 
+            Debug.LogError($"<color=red>[LandPlot]</color> Lỗi Runtime khi sinh cây: {e.Message}"); 
+            return false;
+        }
     }
 
-    void GenerateRandomNeed()
+    public void ApplyCare(CropNeedType careType)
     {
-        currentNeed = (CropNeed)UnityEngine.Random.Range(1, 4);
-        UpdateNeedUI();
-        Debug.Log($"Cây cần chăm sóc: {currentNeed}");
-    }
-
-    void UpdateVisualByProgress(float progress)
-    {
-        if (currentCrop == null || currentCrop.growthStages.Length == 0) return;
-        int index = Mathf.Clamp(
-            Mathf.FloorToInt(progress * currentCrop.growthStages.Length),
-            0,
-            currentCrop.growthStages.Length - 1
-        );
-        if (plantRenderer != null)
-            plantRenderer.sprite = currentCrop.growthStages[index];
+        if (currentNeed == careType)
+        {
+            currentNeed = CropNeedType.None;
+            UpdateNeedUI();
+            if (_cropGrowth != null) _cropGrowth.ResolveNeed(careType);
+        }
     }
 
     public void UpdateNeedUI()
     {
         if (needIconRenderer == null) return;
+
+        if (CanHarvest())
+        {
+            needIconRenderer.sprite = harvestSprite;
+            return;
+        }
+
         switch (currentNeed)
         {
-            case CropNeed.Water: needIconRenderer.sprite = waterSprite; break;
-            case CropNeed.PestControl: needIconRenderer.sprite = pestSprite; break;
-            case CropNeed.Weeding: needIconRenderer.sprite = weedSprite; break;
+            case CropNeedType.Water: needIconRenderer.sprite = waterSprite; break;
+            case CropNeedType.Pest:  needIconRenderer.sprite = pestSprite; break;
+            case CropNeedType.Fertilizer: needIconRenderer.sprite = weedSprite; break;
             default: needIconRenderer.sprite = null; break;
         }
     }
 
     public void ClearPlot()
     {
+        if (_spawnedCropObj != null) Destroy(_spawnedCropObj);
+        _spawnedCropObj = null;
+        _cropGrowth = null;
         isOccupied = false;
         plantedSeedID = "";
         currentCrop = null;
         plantedTime = default;
-        currentNeed = CropNeed.None;
-        needHasSpawned = false;
+        currentNeed = CropNeedType.None;
         if (plantRenderer != null) plantRenderer.sprite = null;
-        if (needIconRenderer != null) needIconRenderer.sprite = null;
     }
 
-    // Dùng cho Save/Load và Swap
-    public void SetData(bool occupied, CropDataSO data, DateTime time, CropNeed need, bool needSpawned)
+    public void Harvest()
     {
-        isOccupied = occupied;
-        currentCrop = data;
-        plantedTime = time;
-        currentNeed = need;
-        needHasSpawned = needSpawned;
+        if (!CanHarvest()) return;
+        if (DataManager.Instance != null && currentCrop != null)
+        {
+            int yieldBoosted = currentCrop.yieldAmount * 10;
+            DataManager.Instance.AddItem(currentCrop.productID, yieldBoosted);
+            if (FarmPuzzle.Meta.QuestManager.Instance != null)
+                FarmPuzzle.Meta.QuestManager.Instance.UpdateProgress(currentCrop.productID, yieldBoosted);
+        }
+        ClearPlot();
+    }
 
-        if (isOccupied && currentCrop != null)
+    public void SetData(string id, bool locked, SeedItemSO seed, long ticks)
+    {
+        this.plotID = id;
+        this.isLocked = locked; 
+        this.plantedSeedID = (seed != null) ? seed.seedID : "";
+        this.plantedTime = new DateTime(ticks, DateTimeKind.Utc);
+        
+        ApplyLockVisual(); 
+
+        if (!string.IsNullOrEmpty(plantedSeedID) && seed != null)
         {
-            UpdateVisualByProgress(GetGrowthProgress());
-            UpdateNeedUI();
+            currentCrop = seed.cropData;
+            bool success = SpawnCropVisual();
+            isOccupied = success;
         }
-        else
-        {
-            if (plantRenderer != null) plantRenderer.sprite = null;
-            if (needIconRenderer != null) needIconRenderer.sprite = null;
-        }
+        else ClearPlot();
     }
 }

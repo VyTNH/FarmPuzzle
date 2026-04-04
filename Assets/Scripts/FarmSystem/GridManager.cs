@@ -1,174 +1,206 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
-using static CropStatus;
+using System.Collections.Generic;
+using UnityEngine.UI;
+using FarmPuzzle.FarmSystem.Crop;
 
-public class GridManager : MonoBehaviour
+namespace FarmPuzzle.FarmSystem
 {
-    [Header("Setup")]
-    public GameObject plotPrefab;
-    public int width = 10;
-    public int height = 10;
-
-    [Header("Trồng cây")]
-    public SeedItemSO selectedSeed;
-    public SeedItemSO[] registeredSeeds; // Tất cả hạt giống SO (nạp bởi SceneGenerator)
-
-    [Header("Chăm sóc thủ công")]
-    [Tooltip("Tool đang cầm trên tay. None = không chăm sóc")]
-    public CropNeed selectedCareTool = CropNeed.None;
-
-    void Start()
+    public class GridManager : MonoBehaviour
     {
-        // Ưu tiên quét các ô đất đã có sẵn trong Scene (do Tool hoặc Dev đặt tay)
-        LandPlot[] existingPlots = FindObjectsByType<LandPlot>(FindObjectsSortMode.None);
-        if (existingPlots.Length > 0)
+        public static GridManager Instance;
+
+        public List<LandPlot> plots = new List<LandPlot>();
+        public SeedItemSO selectedSeed; 
+        public SeedItemSO[] registeredSeeds; 
+        public CropNeedType selectedCareTool = CropNeedType.None;
+
+        private void Awake() { Instance = this; }
+
+        private void Start()
         {
-            Debug.Log($"[GridManager] Phát hiện {existingPlots.Length} ô đất có sẵn → Bỏ qua GenerateGrid.");
-            return;
-        }
+            if (plots.Count == 0) plots.AddRange(FindObjectsByType<LandPlot>(FindObjectsSortMode.None));
 
-        // Không có ô đất nào trong Scene → Tự sinh lưới mới từ Prefab
-        GenerateGrid();
-    }
-
-    void GenerateGrid()
-    {
-        if (plotPrefab == null)
-        {
-            Debug.LogWarning("[GridManager] plotPrefab trống VÀ không có ô đất sẵn → Không thể tạo nông trại!");
-            return;
-        }
-        for (int x = 0; x < width; x++)
-            for (int y = 0; y < height; y++)
-                Instantiate(plotPrefab, new Vector3(x, y, 0), Quaternion.identity, transform);
-        
-        Debug.Log($"[GridManager] Đã sinh lưới đất mới {width}x{height} từ Prefab.");
-    }
-
-    // Đọc bảng FARM_TILE từ SQLite và đồng bộ trạng thái cho từng ô đất
-    public void LoadFarmFromDB()
-    {
-        if (DataManager.Instance == null || DataManager.Instance.CurrentPlayer == null)
-        {
-            Debug.LogWarning("[GridManager] Chưa đăng nhập! Không thể đọc FARM_TILE.");
-            return;
-        }
-
-        var tiles = DataManager.Instance.GetFarmTiles();
-        LandPlot[] allPlots = FindObjectsByType<LandPlot>(FindObjectsSortMode.None);
-
-        Debug.Log($"[GridManager] Đọc DB: {tiles.Count} dòng FARM_TILE | Scene: {allPlots.Length} ô đất");
-
-        int matched = 0;
-        foreach (var plot in allPlots)
-        {
-            // Ghép tên ô đất trong Scene (LandPlot_x_y) với TileID trong DB (tile_playerID_x_y)
-            string plotName = plot.gameObject.name; // VD: "LandPlot_2_3"
-            string coords = plotName.Replace("LandPlot_", ""); // VD: "2_3"
-            string expectedTileID = $"tile_{DataManager.Instance.CurrentPlayer.PlayerID}_{coords}";
-
-            var dbTile = tiles.Find(t => t.TileID == expectedTileID);
-            if (dbTile != null)
+            // LoadGridState se duoc goi sau khi login tu UI hoặc neu da login
+            if (DataManager.Instance != null && DataManager.Instance.CurrentPlayer != null)
             {
-                matched++;
-                
-                // Đồng bộ trạng thái KHÓA/MỞ
-                if (dbTile.State == 0)
-                    plot.LockPlot();
-                else
-                    plot.UnlockPlot();
+                LoadGridState();
+            }
+        }
 
-                // KHÔI PHỤC CÂY TRỒNG từ DB (nếu có)
-                if (!string.IsNullOrEmpty(dbTile.PlantedSeedID) && dbTile.PlantTimeTicks > 0)
+        private void Update()
+        {
+            if (Input.GetMouseButtonDown(0))
+            {
+                // Kiểm tra xem có đang click đè lên UI thật không
+                if (UnityEngine.EventSystems.EventSystem.current != null && 
+                    UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
                 {
-                    SeedItemSO seed = FindSeedByID(dbTile.PlantedSeedID);
-                    if (seed != null && seed.cropData != null)
+                    var pointerData = new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current)
                     {
-                        System.DateTime plantedTime = new System.DateTime(dbTile.PlantTimeTicks, System.DateTimeKind.Utc);
-                        plot.plantedSeedID = dbTile.PlantedSeedID;
-                        plot.SetData(true, seed.cropData, plantedTime, CropNeed.None, false);
-                        Debug.Log($"  🌱 {plotName}: Khôi phục cây {seed.seedName}");
+                        position = Input.mousePosition
+                    };
+                    var results = new List<UnityEngine.EventSystems.RaycastResult>();
+                    UnityEngine.EventSystems.EventSystem.current.RaycastAll(pointerData, results);
+                    
+                    if (results.Count > 0)
+                    {
+                        // CHỈ CHẶN nếu object trúng Raycast nằm ở Layer "UI" (thường là layer 5)
+                        // Hoặc sếp có thể kiểm tra nếu nó không phải là một LandPlot
+                        int uiLayer = LayerMask.NameToLayer("UI");
+                        if (results[0].gameObject.layer == uiLayer)
+                        {
+                            Debug.Log($"<color=yellow>[Grid]</color> Click bị chặn bởi UI thật: <b>{results[0].gameObject.name}</b> (Layer UI)");
+                            return;
+                        }
+                        else
+                        {
+                            // Nếu trúng cái gì đó không phải layer UI (như chính ô đất), ta vẫn cho qua
+                            Debug.Log($"<color=white>[Grid]</color> Click trúng <b>{results[0].gameObject.name}</b> qua EventSystem nhưng không phải Layer UI. Tiếp tục xử lý...");
+                        }
                     }
+                }
+
+                HandleInteraction();
+            }
+        }
+
+        public void LoadGridState()
+        {
+            if (DataManager.Instance == null || DataManager.Instance.CurrentPlayer == null) return;
+
+            string playerID = DataManager.Instance.CurrentPlayer.PlayerID;
+            Debug.Log("[Grid] Bat dau dong bo du lieu tu SQLite cho nguoi choi: " + playerID);
+
+            // Moi: Tu dong nap danh sach hat giong neu dang trong
+            if (registeredSeeds == null || registeredSeeds.Length == 0)
+            {
+                registeredSeeds = Resources.LoadAll<SeedItemSO>("");
+                Debug.Log("[Grid] Da tu dong nap " + registeredSeeds.Length + " loai hat giong tu Resources.");
+            }
+
+            foreach (var plot in plots)
+            {
+                // Chuan hoa ID giong nhu OfflineTimeManager va DataManager
+                string coords = plot.gameObject.name.Replace("LandPlot_", "");
+                plot.plotID = "tile_" + playerID + "_" + coords;
+
+                var dbTile = DataManager.Instance.GetFarmTile(plot.plotID);
+                if (dbTile != null)
+                {
+                    bool isLocked = dbTile.State == 0;
+                    SeedItemSO foundSeed = null;
+                    if (registeredSeeds != null && !string.IsNullOrEmpty(dbTile.PlantedSeedID))
+                        foundSeed = System.Array.Find(registeredSeeds, s => s != null && s.seedID == dbTile.PlantedSeedID);
+
+                    plot.SetData(dbTile.TileID, isLocked, foundSeed, dbTile.PlantTimeTicks);
+                }
+                else 
+                {
+                    Debug.LogWarning("[Grid] Khong tim thay du lieu cho " + plot.plotID + ". Khoi tao moi.");
+                    SavePlotState(plot);
+                }
+            }
+        }
+
+        public void SavePlotState(LandPlot plot)
+        {
+            if (DataManager.Instance == null || DataManager.Instance.CurrentPlayer == null) return;
+            
+            // Sử dụng UpdateFarmTile mới đã được nâng cấp với InsertOrReplace
+            DataManager.Instance.UpdateFarmTile(new FarmPuzzle.Core.Database.FarmTileModel {
+                TileID = plot.plotID,
+                PlayerID = DataManager.Instance.CurrentPlayer.PlayerID,
+                State = plot.isLocked ? 0 : 1,
+                PlantedSeedID = plot.isOccupied ? plot.plantedSeedID : "",
+                PlantTimeTicks = plot.isOccupied ? plot.plantedTime.Ticks : 0
+            });
+        }
+
+        public void SaveGridToDB()
+        {
+            foreach (var plot in plots) SavePlotState(plot);
+        }
+
+        private void HandleInteraction()
+        {
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            RaycastHit2D hit = Physics2D.Raycast(ray.origin, ray.direction);
+            
+            if (hit.collider == null) 
+            {
+                Debug.Log($"<color=white>[Grid Interaction]</color> Click vào khoảng không (Raycast không trúng collider nào tại {ray.origin}).");
+                return;
+            }
+
+            LandPlot clickedPlot = hit.collider.GetComponent<LandPlot>();
+            if (clickedPlot == null) 
+            {
+                Debug.Log($"<color=white>[Grid Interaction]</color> Click trúng vật thể <b>{hit.collider.name}</b> nhưng không có script LandPlot.");
+                return;
+            }
+
+            Debug.Log($"<color=cyan>[Grid Interaction]</color> Người chơi click vào ô: <b>{clickedPlot.plotID}</b>");
+
+            if (clickedPlot.isLocked) { 
+                Debug.LogWarning($"<color=orange>[Grid Interaction]</color> Ô '{clickedPlot.plotID}' đang BỊ KHÓA! Cần giải đố để mở."); 
+                if (FarmPuzzle.LandPuzzle.UI.LandPuzzlePopupController.Instance != null)
+                    FarmPuzzle.LandPuzzle.UI.LandPuzzlePopupController.Instance.ShowConfirmPopup(clickedPlot);
+                return; 
+            }
+
+            if (clickedPlot.isOccupied) { 
+                Debug.Log($"<color=cyan>[Grid Interaction]</color> Ô '{clickedPlot.plotID}' đã có cây. Kiểm tra nhu cầu chăm sóc hoặc thu hoạch.");
+                HandleCareOrHarvest(clickedPlot); 
+                return; 
+            }
+
+            if (selectedSeed == null) { 
+                Debug.LogWarning("<color=orange>[Grid Interaction]</color> Sếp chưa CHỌN loại hạt giống để gieo!"); 
+                return; 
+            }
+
+            Debug.Log($"<color=cyan>[Grid Interaction]</color> Đang thử gieo hạt: <b>{selectedSeed.seedName}</b> (ID: {selectedSeed.seedID})");
+            
+            // Nếu sếp đang ở trạng thái Test, tôi sẽ tự động nạp đạn cho sếp nếu kho trống
+            bool hasItem = DataManager.Instance != null && DataManager.Instance.RemoveItem(selectedSeed.seedID, 1);
+            if (!hasItem && DataManager.Instance != null)
+            {
+                Debug.Log($"<color=yellow>[Grid Interaction]</color> Kho hết hạt giống <b>{selectedSeed.seedName}</b>. Tự động nạp 1 hạt để sếp Test thuận tiện.");
+                DataManager.Instance.AddItem(selectedSeed.seedID, 1);
+                hasItem = DataManager.Instance.RemoveItem(selectedSeed.seedID, 1);
+            }
+
+            if (hasItem)
+            {
+                Debug.Log($"<color=cyan>[Grid Interaction]</color> Đã trừ 1 hạt giống từ kho. Bắt đầu gọi logic Plant trên ô {clickedPlot.plotID}...");
+                bool success = clickedPlot.Plant(selectedSeed);
+                if (success) 
+                {
+                    SavePlotState(clickedPlot);
+                    Debug.Log($"<color=green>[Grid Interaction]</color> <b>THÀNH CÔNG!</b> Đã gieo {selectedSeed.seedName} và lưu vào database.");
+                }
+                else 
+                {
+                    Debug.LogError($"<color=red>[Grid Interaction]</color> <b>THẤT BẠI!</b> Logic Plant của LandPlot trả về false.");
                 }
             }
             else
             {
-                plot.UnlockPlot();
-                Debug.LogWarning($"  ⚠ {plotName}: Không tìm thấy DB ({expectedTileID}) → Mở mặc định");
+                Debug.LogError($"<color=red>[Grid Interaction]</color> Không thể gieo hạt. Kho đồ trống và chế độ tự nạp đạn gặp lỗi.");
             }
         }
 
-        Debug.Log($"<color=green>[GridManager] Đồng bộ HOÀN TẤT! Khớp {matched}/{allPlots.Length} ô đất.</color>");
-    }
-
-    // Tra cứu SeedItemSO theo seedID
-    private SeedItemSO FindSeedByID(string seedID)
-    {
-        if (registeredSeeds == null) return null;
-        foreach (var s in registeredSeeds)
+        private void HandleCareOrHarvest(LandPlot plot)
         {
-            if (s != null && s.seedID == seedID) return s;
-        }
-        return null;
-    }
-
-    void Update()
-    {
-        if (Mouse.current.leftButton.wasPressedThisFrame)
-            HandleInteraction();
-    }
-
-    void HandleInteraction()
-    {
-        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Mouse.current.position.ReadValue());
-        RaycastHit2D hit = Physics2D.Raycast(mousePos, Vector2.zero);
-
-        if (hit.collider == null) return;
-
-        LandPlot clickedPlot = hit.collider.GetComponent<LandPlot>();
-        if (clickedPlot == null) return;
-
-        // --- Ô đất trống → Trồng cây (Bước 1) ---
-        if (!clickedPlot.isOccupied)
-        {
-            if (selectedSeed != null && !string.IsNullOrEmpty(selectedSeed.seedID))
-            {
-                // Gọi DataManager check xem kho còn hạt giống này không (Trừ luôn 1 hạt)
-                if (DataManager.Instance != null && DataManager.Instance.RemoveItem(selectedSeed.seedID, 1))
-                {
-                    clickedPlot.Plant(selectedSeed);
-                    Debug.Log($"Đã trồng: {selectedSeed.seedName} (-1 trong kho)");
-                }
-                else
-                {
-                    Debug.LogWarning($"Kho chứa của bạn không còn đủ: {selectedSeed.seedName} để trồng!");
-                }
+             if (selectedCareTool != CropNeedType.None) {
+                plot.ApplyCare(selectedCareTool);
+                SavePlotState(plot);
+                return;
             }
-            return;
-        }
-
-        // --- Ô đã có cây ---
-
-        // Nếu đang cầm tool chăm sóc → chăm sóc
-        if (selectedCareTool != CropNeed.None)
-        {
-            clickedPlot.ApplyCare(selectedCareTool);
-            return;
-        }
-
-        // Nếu không cầm tool → thử thu hoạch
-        if (clickedPlot.CanHarvest())
-        {
-            clickedPlot.Harvest();
-        }
-        else
-        {
-            // Thông báo lý do chưa harvest được
-            float progress = clickedPlot.GetGrowthProgress();
-            if (progress < 1f)
-                Debug.Log($"Cây chưa chín! Tiến độ: {(progress * 100f):F0}%");
-            else if (clickedPlot.currentNeed != CropNeed.None)
-                Debug.Log($"Cây cần chăm sóc trước: {clickedPlot.currentNeed}");
+            if (plot.CanHarvest()) {
+                plot.Harvest();
+                SavePlotState(plot);
+            }
         }
     }
 }

@@ -31,11 +31,30 @@ public class DatabaseTesterWindow : EditorWindow
     private Vector2 jsonScrollPos;
 
     private string currentJsonOutput = "";
+    private string sqlInput = "INSERT INTO PRODUCT_ITEM (ProductID, Name, Type, SellPrice) VALUES ('prod_lemon', 'Chanh', 'Fruit', 50);";
     
     // Lưu trữ dữ liệu thô để vẽ UI Bảng Excel
     private object[] currentTableData;
     private PropertyInfo[] currentProperties;
     private string statusMessage = "Bấm 'Đọc Dữ Liệu Bảng Này' để xem...";
+
+    private void ExecuteCustomQuery(string query)
+    {
+        if (string.IsNullOrEmpty(query)) return;
+        if (!File.Exists(dbPath)) return;
+
+        using (var db = new SQLiteConnection(dbPath))
+        {
+            try {
+                db.Execute(query);
+                statusMessage = "✅ THÀNH CÔNG: Đã thực thi lệnh SQL!";
+                FetchTableData(selectedTableIndex); 
+            } catch (System.Exception ex) {
+                statusMessage = "❌ LỖI SQL: " + ex.Message;
+                Debug.LogError(ex.Message);
+            }
+        }
+    }
 
     [MenuItem("FarmPuzzle/Tra Cứu Database (Chuẩn ERD) & JSON")]
     public static void ShowWindow()
@@ -79,6 +98,15 @@ public class DatabaseTesterWindow : EditorWindow
         GUILayout.EndHorizontal();
 
         GUILayout.Label("Trạng thái: " + statusMessage, EditorStyles.helpBox);
+        
+        // ---- QUICK ADD ROW ----
+        GUILayout.BeginHorizontal();
+        if (GUILayout.Button("➕ DÙNG DB BROWSER MỞ FILE CSDL", GUILayout.Height(25), GUILayout.Width(250))) {
+            EditorUtility.RevealInFinder(dbPath);
+        }
+        GUILayout.Label(" (Dùng phần mềm SQLite Studio / DB Browser chép đè hoặc Thêm Bảng Dữ Liệu mới cực lẹ!)", EditorStyles.miniLabel);
+        GUILayout.EndHorizontal();
+
         GUILayout.Space(10);
 
         // ================= GIAO DIỆN HIỂN THỊ CHÍNH =================
@@ -125,8 +153,16 @@ public class DatabaseTesterWindow : EditorWindow
         EditorGUILayout.EndScrollView();
         GUILayout.EndVertical();
 
-        // --- Cột Phải (25% Ngắn): View JSON ---
+        // --- Cột Phải (25% Ngắn): View JSON & SQL Execute ---
         GUILayout.BeginVertical(GUILayout.Width(position.width * 0.3f - 10));
+        
+        GUILayout.Label("⌨️ THỰC THI SQL QUERY (JSON/SQL)", EditorStyles.boldLabel);
+        sqlInput = EditorGUILayout.TextArea(sqlInput, GUILayout.Height(100));
+        if (GUILayout.Button("⚡ CHẠY TRUY VẤN (EXECUTE)", GUILayout.Height(30))) {
+            ExecuteCustomQuery(sqlInput);
+        }
+        GUILayout.Space(10);
+
         GUILayout.Label("⚙️ XUẤT MÃ JSON", EditorStyles.boldLabel);
         jsonScrollPos = EditorGUILayout.BeginScrollView(jsonScrollPos, "box", GUILayout.ExpandHeight(true));
         currentJsonOutput = EditorGUILayout.TextArea(currentJsonOutput, GUILayout.ExpandHeight(true));
@@ -134,7 +170,7 @@ public class DatabaseTesterWindow : EditorWindow
         
         if (GUILayout.Button("📋 COPY TOÀN BỘ JSON", GUILayout.Height(35))) {
             GUIUtility.systemCopyBuffer = currentJsonOutput;
-            statusMessage = "Đã Copy JSON nguyên thủy vào bộ nhớ đệm (Clipboard)!";
+            statusMessage = "Đã Copy JSON!";
         }
         GUILayout.EndVertical();
 

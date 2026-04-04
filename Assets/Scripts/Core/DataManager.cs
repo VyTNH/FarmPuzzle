@@ -11,6 +11,10 @@ public class DataManager : MonoBehaviour
     // Thông tin người chơi hiện tại đang kết nối (Giống PlayerSession)
     public PlayerModel CurrentPlayer { get; private set; }
 
+    // MỚI: Kiểm tra xem DB có đang mở và sẵn sàng làm việc không
+    public bool IsReady => (DB != null && !_isClosing);
+    private bool _isClosing = false;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void AutoStart()
     {
@@ -80,26 +84,26 @@ public class DataManager : MonoBehaviour
         Debug.Log("[DataManager] Đã xóa sạch dữ liệu tài khoản cũ (Single-player reset).");
     }
 
-    // Kiểm tra FARM_TILE đúng format 5x5 (tile_playerID_x_y). Nếu lỗi → xóa tạo lại.
+    // Kiem tra FARM_TILE dung format tile_playerID_x_y. Neu loi -> tai tao.
     private void ValidateAndRepairFarmTiles(string userID)
     {
         var existingTiles = DB.Table<FarmTileModel>().Where(t => t.PlayerID == userID).ToList();
         
-        // Kiểm tra: phải có đúng 25 ô VÀ tile đầu tiên phải có format _x_y (2 số cuối)
+        // Kiem tra: it nhat phai co 25 o (mac dinh tutorial)
         bool needRepair = false;
-        if (existingTiles.Count != 25)
+        if (existingTiles.Count < 25)
         {
             needRepair = true;
-            Debug.LogWarning($"[DataManager] FARM_TILE có {existingTiles.Count} ô (cần 25). Sẽ tái tạo.");
+            Debug.LogWarning("[DataManager] FARM_TILE chi co " + existingTiles.Count + " o (it nhat can 25). Se tai tao.");
         }
         else
         {
-            // Kiểm tra format: tile cuối phải kết thúc bằng _4_4
-            string expectedLast = $"tile_{userID}_4_4";
-            if (!existingTiles.Exists(t => t.TileID == expectedLast))
+            // Kiem tra format mot o bat ky de dam bao tinh toan ven
+            string expectedSample = "tile_" + userID + "_0_0";
+            if (!existingTiles.Exists(t => t.TileID == expectedSample))
             {
                 needRepair = true;
-                Debug.LogWarning("[DataManager] FARM_TILE sai format (thiếu tọa độ x_y). Sẽ tái tạo.");
+                Debug.LogWarning("[DataManager] FARM_TILE sai format (thieu toa do x_y). Se tai tao.");
             }
         }
 
@@ -229,14 +233,14 @@ public class DataManager : MonoBehaviour
 
     public void UpdateFarmTile(FarmTileModel tile)
     {
-        if (CurrentPlayer == null) return;
-        DB.Update(tile);
-        Debug.Log($"[DataManager] FARM_TILE Update: {tile.TileID} State={tile.State}");
+        if (!IsReady || CurrentPlayer == null) return;
+        DB.InsertOrReplace(tile);
+        Debug.Log($"[DataManager] FARM_TILE Saved: {tile.TileID} State={tile.State}");
     }
 
     public FarmTileModel GetFarmTile(string tileID)
     {
-        if (CurrentPlayer == null) return null;
+        if (!IsReady || CurrentPlayer == null) return null;
         return DB.Table<FarmTileModel>().FirstOrDefault(t => t.TileID == tileID);
     }
 
@@ -251,6 +255,11 @@ public class DataManager : MonoBehaviour
 
     private void OnApplicationQuit()
     {
-        if (DB != null) DB.Close();
+        _isClosing = true; // Báo hiệu cho các script khác là DB sắp đóng cửa
+        if (DB != null) 
+        {
+            DB.Close();
+            Debug.Log("[DataManager] SQLite Connection Closed safely.");
+        }
     }
 }

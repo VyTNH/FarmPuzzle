@@ -28,6 +28,8 @@ namespace FarmPuzzle.LandPuzzle
     /// </summary>
     public class LandPuzzleManager : MonoBehaviour
     {
+        public static LandPuzzleManager Instance { get; private set; }
+
         [Header("References")]
         [SerializeField] private GridBoard    _gridBoard;
         [SerializeField] private BlockSpawner _blockSpawner;
@@ -36,7 +38,7 @@ namespace FarmPuzzle.LandPuzzle
 
         // ── State ──
         private PuzzleState  _state = PuzzleState.Idle;
-        private FarmLandTile _currentTargetTile;
+        private LandPlot _currentTargetTile;
 
         // ── Events ──
         public static System.Action<GridObstacleData, int> OnResourceGained;
@@ -46,20 +48,22 @@ namespace FarmPuzzle.LandPuzzle
 
         public PuzzleState CurrentState => _state;
         public int         CurrentScore => _scoring != null ? _scoring.CurrentScore : 0;
+        
+        // MỚI: Kiểm tra xem sếp có đang bận giải đố không
+        public bool IsPuzzleActive => _state != PuzzleState.Idle;
 
         // ─────────────────────────────────────────────────────────────────────
 
         private void Awake()
         {
+            if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+            Instance = this;
+
             if (_puzzlePanel != null) _puzzlePanel.SetActive(false);
         }
 
         private void Start()
         {
-            // Subscribe farm tiles
-            foreach (var tile in FindObjectsByType<FarmLandTile>(FindObjectsSortMode.None))
-                tile.OnTileClicked += OnFarmTileClicked;
-
             // Subscribe energy
             if (EnergySystem.Instance != null)
                 EnergySystem.Instance.OnEnergyChanged += (cur, max) => OnEnergyChanged?.Invoke(cur, max);
@@ -70,7 +74,7 @@ namespace FarmPuzzle.LandPuzzle
         // ─────────────────────────────────────────────────────────────────────
 
         /// <summary>Gọi trực tiếp (editor test hoặc farm tile click).</summary>
-        public void StartPuzzle(LevelData levelData, FarmLandTile targetTile = null)
+        public void StartPuzzle(LevelData levelData, LandPlot targetTile = null)
         {
             if (_state == PuzzleState.Playing) return;
 
@@ -109,23 +113,7 @@ namespace FarmPuzzle.LandPuzzle
             _state = PuzzleState.Idle;
         }
 
-        // ─────────────────────────────────────────────────────────────────────
-        // FARM TILE → PUZZLE
-        // ─────────────────────────────────────────────────────────────────────
-
-        private void OnFarmTileClicked(FarmLandTile tile)
-        {
-            if (tile.LevelData == null)
-            {
-                Debug.LogWarning($"[Puzzle] Tile {tile.FarmGridPosition} chưa có LevelData!");
-                return;
-            }
-            StartPuzzle(tile.LevelData, tile);
-        }
-
-        // ─────────────────────────────────────────────────────────────────────
-        // GAME EVENTS
-        // ─────────────────────────────────────────────────────────────────────
+        // ── GAME EVENTS ──
 
         private void HandleBlockPlaced(ShapeData shape, Vector2Int anchor)
         {
@@ -177,13 +165,13 @@ namespace FarmPuzzle.LandPuzzle
             Debug.Log("[Puzzle] ✅ WIN! All obstacles cleared.");
 
             // Mở khóa ô đất đã chọn
-            _currentTargetTile?.Unlock();
+            _currentTargetTile?.UnlockPlot();
 
             OnPuzzleWin?.Invoke();
             CleanUpPuzzle();
-
-            // Ẩn puzzle sau delay nhỏ (có thể play animation trước)
-            Invoke(nameof(HidePuzzlePanel), 1.5f);
+ 
+            // Ẩn TOÀN BỘ hệ thống puzzle (Board, Spawner, UI)
+            HideEntirePuzzleSystem();
         }
 
         private void HandleGameOver()
@@ -193,9 +181,24 @@ namespace FarmPuzzle.LandPuzzle
             OnPuzzleGameOver?.Invoke();
         }
 
-        private void HidePuzzlePanel()
+        /// <summary>
+        /// Ẩn toàn bộ hệ thống Puzzle (Bao gồm cả Bàn cờ, UI, và nền tối).
+        /// </summary>
+        private void HideEntirePuzzleSystem()
         {
+            // Tắt cái Panel UI
             if (_puzzlePanel != null) _puzzlePanel.SetActive(false);
+
+            // Tắt luôn cái Bàn cờ và Spawner (nếu chúng nó không nằm trong Panel)
+            if (_gridBoard != null) _gridBoard.gameObject.SetActive(false);
+            if (_blockSpawner != null) _blockSpawner.gameObject.SetActive(false);
+
+            // Nếu sếp có cái Background tối (thường là parent của hệ thống)
+            // Em sẽ tắt luôn cái object chứa cái script này (thường là Parent Puzzle System)
+            // gameObject.SetActive(false); // Cẩn thận: Nếu script này nằm trên Core thì không được tắt
+            
+            _state = PuzzleState.Idle;
+            Debug.Log("<color=cyan>[Puzzle]</color> Đã dọn dẹp và ẩn toàn bộ hệ thống. Quay lại Farm!");
         }
 
         private void CleanUpPuzzle()

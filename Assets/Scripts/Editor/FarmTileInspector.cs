@@ -16,6 +16,13 @@ namespace FarmPuzzle.EditorTools
         private FarmTileModel _selectedTile = null;
         private Vector2 _detailScroll;
 
+        // Bo nho tam de chinh sua
+        private int _editState;
+        private string _editSeed;
+        private bool _editObstacle;
+        private string _editObsID;
+        private string _lastTileID;
+
         [MenuItem("FarmPuzzle/4. Quản Lý Ô Đất (FARM_TILE Inspector)")]
         public static void ShowWindow()
         {
@@ -53,6 +60,12 @@ namespace FarmPuzzle.EditorTools
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("🔍 Tải dữ liệu", GUILayout.Height(25), GUILayout.Width(130)))
                 LoadTiles();
+            
+            GUI.backgroundColor = new Color(1f, 0.7f, 0.7f);
+            if (GUILayout.Button("🗑️ Dọn dẹp DB", GUILayout.Height(25), GUILayout.Width(120)))
+                CleanupDatabase();
+            GUI.backgroundColor = Color.white;
+
             GUILayout.Label(_statusMsg);
             GUILayout.EndHorizontal();
 
@@ -67,25 +80,28 @@ namespace FarmPuzzle.EditorTools
             // Chia 2 cột: Trái = Bản đồ trực quan | Phải = Chi tiết ô đang chọn
             GUILayout.BeginHorizontal();
 
-            // ========== CỘT TRÁI: BẢN ĐỒ LƯỚI 5x5 ==========
-            GUILayout.BeginVertical("box", GUILayout.Width(320));
+            // ========== CỘT TRÁI: BẢN ĐỒ LƯỚI 10x10 ==========
+            GUILayout.BeginVertical("box", GUILayout.Width(450));
             GUILayout.Label("📍 BẢN ĐỒ NÔNG TRẠI (Click ô để chỉnh sửa)", EditorStyles.boldLabel);
             GUILayout.Space(5);
+
+            // Thêm ScrollView cho lưới 10x10
+            _detailScroll = GUILayout.BeginScrollView(_detailScroll, GUILayout.Height(400));
 
             // Header cột tọa độ X
             GUILayout.BeginHorizontal();
             GUILayout.Label("Y\\X", GUILayout.Width(30));
-            for (int x = 0; x < 5; x++)
-                GUILayout.Label($"  {x}", EditorStyles.boldLabel, GUILayout.Width(52));
+            for (int x = 0; x < 10; x++)
+                GUILayout.Label("  " + x, EditorStyles.boldLabel, GUILayout.Width(35));
             GUILayout.EndHorizontal();
 
-            // Vẽ lưới từ Y=4 (trên) xuống Y=0 (dưới) cho khớp với màn hình Game
-            for (int y = 4; y >= 0; y--)
+            // Vẽ lưới từ Y=9 (trên) xuống Y=0 (dưới) cho khớp với màn hình Game
+            for (int y = 9; y >= 0; y--)
             {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label($" {y}", EditorStyles.boldLabel, GUILayout.Width(30));
+                GUILayout.Label(" " + y, EditorStyles.boldLabel, GUILayout.Width(30));
 
-                for (int x = 0; x < 5; x++)
+                for (int x = 0; x < 10; x++)
                 {
                     var tile = FindTileByCoords(x, y);
                     
@@ -93,13 +109,13 @@ namespace FarmPuzzle.EditorTools
                     if (tile == null)
                         GUI.backgroundColor = Color.gray;
                     else if (_selectedTile != null && _selectedTile.TileID == tile.TileID)
-                        GUI.backgroundColor = Color.white; // Đang chọn
+                        GUI.backgroundColor = Color.white; 
                     else if (tile.State == 0)
-                        GUI.backgroundColor = new Color(0.5f, 0.3f, 0.3f); // Khóa = đỏ tối
+                        GUI.backgroundColor = new Color(0.5f, 0.3f, 0.3f); 
                     else if (!string.IsNullOrEmpty(tile.PlantedSeedID))
-                        GUI.backgroundColor = new Color(0.3f, 0.7f, 0.3f); // Đang trồng = xanh lá
+                        GUI.backgroundColor = new Color(0.3f, 0.7f, 0.3f); 
                     else
-                        GUI.backgroundColor = new Color(0.6f, 0.85f, 0.5f); // Mở trống = xanh nhạt
+                        GUI.backgroundColor = new Color(0.6f, 0.85f, 0.5f); 
 
                     string label = "";
                     if (tile == null) label = "?";
@@ -107,14 +123,24 @@ namespace FarmPuzzle.EditorTools
                     else if (!string.IsNullOrEmpty(tile.PlantedSeedID)) label = "🌱";
                     else label = "✅";
 
-                    if (GUILayout.Button(label, GUILayout.Width(52), GUILayout.Height(45)))
+                    if (GUILayout.Button(label, GUILayout.Width(35), GUILayout.Height(35)))
                     {
-                        if (tile != null) _selectedTile = tile;
+                        if (tile != null) 
+                        {
+                            _selectedTile = tile;
+                            // Reset bo nho tam khi chon o moi
+                            _editState = tile.State;
+                            _editSeed = tile.PlantedSeedID ?? "";
+                            _editObstacle = tile.HasObstacle;
+                            _editObsID = tile.ObstacleID ?? "";
+                            _lastTileID = tile.TileID;
+                        }
                     }
                 }
                 GUI.backgroundColor = Color.white;
                 GUILayout.EndHorizontal();
             }
+            GUILayout.EndScrollView();
 
             GUILayout.Space(10);
 
@@ -138,22 +164,22 @@ namespace FarmPuzzle.EditorTools
             // Nút hành động hàng loạt
             GUILayout.BeginHorizontal();
             GUI.backgroundColor = Color.green;
-            if (GUILayout.Button("Mở ALL", GUILayout.Height(25)))
+            if (GUILayout.Button("Mở TẤT CẢ", GUILayout.Height(25)))
             {
                 foreach (var t in _tiles) { t.State = 1; t.HasObstacle = false; t.ObstacleID = ""; _db.Update(t); }
-                _statusMsg = "Đã mở khóa toàn bộ!"; LoadTiles();
+                _statusMsg = "Đã mở khóa toàn bộ các ô!"; LoadTiles();
             }
             GUI.backgroundColor = Color.red;
-            if (GUILayout.Button("Khóa ALL", GUILayout.Height(25)))
+            if (GUILayout.Button("Khóa TẤT CẢ", GUILayout.Height(25)))
             {
                 foreach (var t in _tiles) { t.State = 0; _db.Update(t); }
-                _statusMsg = "Đã khóa toàn bộ!"; LoadTiles();
+                _statusMsg = "Đã khóa toàn bộ trang trại!"; LoadTiles();
             }
             GUI.backgroundColor = new Color(1f, 0.5f, 0f);
-            if (GUILayout.Button("Xóa cây ALL", GUILayout.Height(25)))
+            if (GUILayout.Button("Dọn sạch CÂY", GUILayout.Height(25)))
             {
                 foreach (var t in _tiles) { t.PlantedSeedID = ""; t.PlantTimeTicks = 0; if (t.State == 2) t.State = 1; _db.Update(t); }
-                _statusMsg = "Đã dọn sạch cây!"; LoadTiles();
+                _statusMsg = "Đã dọn sạch cây trồng trên toàn bộ ô mở!"; LoadTiles();
             }
             GUI.backgroundColor = Color.white;
             GUILayout.EndHorizontal();
@@ -164,58 +190,60 @@ namespace FarmPuzzle.EditorTools
             GUILayout.BeginVertical("box");
             if (_selectedTile != null)
             {
-                GUILayout.Label($"📋 CHI TIẾT Ô: {_selectedTile.TileID}", EditorStyles.boldLabel);
+                GUILayout.Label("📋 CHI TIẾT Ô: " + _selectedTile.TileID, EditorStyles.boldLabel);
                 GUILayout.Space(5);
 
                 // Tọa độ
                 string coords = ExtractCoords(_selectedTile.TileID);
-                GUILayout.Label($"Tọa độ trên lưới: ({coords.Replace("_", ", ")})", EditorStyles.largeLabel);
+                GUILayout.Label("Tọa độ lưới: (" + coords.Replace("_", ", ") + ")", EditorStyles.largeLabel);
                 GUILayout.Space(10);
-
-                _detailScroll = GUILayout.BeginScrollView(_detailScroll);
 
                 // State
                 GUILayout.Label("Trạng thái (State):", EditorStyles.boldLabel);
-                int newState = EditorGUILayout.IntPopup(_selectedTile.State, 
+                _editState = EditorGUILayout.IntPopup(_editState, 
                     new string[] { "0 - Khóa 🔒", "1 - Mở ✅", "2 - Đang trồng 🌱" }, 
                     new int[] { 0, 1, 2 });
 
                 GUILayout.Space(5);
                 GUILayout.Label("Hạt giống đang trồng:", EditorStyles.boldLabel);
-                string newSeed = EditorGUILayout.TextField(_selectedTile.PlantedSeedID ?? "");
+                _editSeed = EditorGUILayout.TextField(_editSeed);
 
                 GUILayout.Space(5);
                 GUILayout.Label("Chướng ngại vật:", EditorStyles.boldLabel);
-                bool newObstacle = EditorGUILayout.Toggle("Có chướng ngại", _selectedTile.HasObstacle);
-                string newObsID = EditorGUILayout.TextField("Obstacle ID", _selectedTile.ObstacleID ?? "");
+                _editObstacle = EditorGUILayout.Toggle("Có chướng ngại", _editObstacle);
+                _editObsID = EditorGUILayout.TextField("Obstacle ID", _editObsID);
 
                 GUILayout.Space(10);
 
-                // Phát hiện thay đổi
-                bool changed = (newState != _selectedTile.State || 
-                               newSeed != (_selectedTile.PlantedSeedID ?? "") ||
-                               newObstacle != _selectedTile.HasObstacle || 
-                               newObsID != (_selectedTile.ObstacleID ?? ""));
+                // Phát hiện thay đổi giua Bo nho tam va Du lieu goc
+                bool changed = (_editState != _selectedTile.State || 
+                               _editSeed != (_selectedTile.PlantedSeedID ?? "") ||
+                               _editObstacle != _selectedTile.HasObstacle || 
+                               _editObsID != (_selectedTile.ObstacleID ?? ""));
 
                 if (changed)
                 {
+                    EditorGUILayout.HelpBox("⚠️ DỮ LIỆU ĐÃ THAY ĐỔI - Vui lòng bấm nút Lưu phía dưới", MessageType.Warning);
+                    
                     GUI.backgroundColor = Color.yellow;
-                    if (GUILayout.Button("💾 LƯU THAY ĐỔI", GUILayout.Height(35)))
+                    if (GUILayout.Button("💾 LƯU THAY ĐỔI NGAY", GUILayout.Height(45)))
                     {
-                        _selectedTile.State = newState;
-                        _selectedTile.PlantedSeedID = newSeed;
-                        _selectedTile.HasObstacle = newObstacle;
-                        _selectedTile.ObstacleID = newObsID;
-                        _db.Update(_selectedTile);
-                        _statusMsg = $"Đã lưu: {_selectedTile.TileID}";
+                        Debug.Log("[Inspector Log] Bat dau cap nhat vao SQLite cho o: " + _selectedTile.TileID + " | State Moi: " + _editState);
+                        _selectedTile.State = _editState;
+                        _selectedTile.PlantedSeedID = _editSeed;
+                        _selectedTile.HasObstacle = _editObstacle;
+                        _selectedTile.ObstacleID = _editObsID;
+                        
+                        int affectedRows = _db.Update(_selectedTile);
+                        Debug.Log("[Inspector Log] Ket qua SQLite: Da cap nhat " + affectedRows + " dong.");
+                        
+                        _statusMsg = "Đã lưu thành công: " + _selectedTile.TileID;
                         LoadTiles();
-                        // Tìm lại tile đã chọn sau khi reload
+                        // Tim lai tile da chon sau khi reload
                         _selectedTile = _tiles.FirstOrDefault(t => t.TileID == _selectedTile.TileID);
                     }
                     GUI.backgroundColor = Color.white;
                 }
-
-                GUILayout.EndScrollView();
             }
             else
             {
@@ -226,19 +254,46 @@ namespace FarmPuzzle.EditorTools
             GUILayout.EndHorizontal();
         }
 
-        // Tìm tile trong DB dựa trên tọa độ x_y (khớp với bất kỳ playerID nào)
+        // Tim tile trong DB dua tren toa do x_y (Uu tien ID bat dau bang 'tile_')
         private FarmTileModel FindTileByCoords(int x, int y)
         {
-            string suffix = $"_{x}_{y}";
-            return _tiles.FirstOrDefault(t => t.TileID.EndsWith(suffix));
+            string suffix = "_" + x + "_" + y;
+            var matches = _tiles.Where(t => t.TileID.EndsWith(suffix)).ToList();
+            if (matches.Count == 0) return null;
+            
+            var standard = matches.FirstOrDefault(t => t.TileID.StartsWith("tile_"));
+            return standard ?? matches[0];
         }
 
-        // Trích tọa độ từ TileID (VD: "tile_player01_2_3" → "2_3")
+        private void CleanupDatabase()
+        {
+            if (_db == null) ConnectDB();
+            if (_db == null) return;
+
+            if (!EditorUtility.DisplayDialog("Xác nhận dọn dẹp", 
+                "Hệ thống sẽ xóa tất cả các ô đất có ID sai quy chuẩn (không bắt đầu bằng 'tile_'). Bạn có chắc chắn không?", 
+                "Có, xóa ngay", "Hủy")) return;
+
+            var allTiles = _db.Table<FarmTileModel>().ToList();
+            int count = 0;
+            foreach (var t in allTiles)
+            {
+                if (!t.TileID.StartsWith("tile_"))
+                {
+                    _db.Delete(t);
+                    count++;
+                }
+            }
+            _statusMsg = "Đã dọn dẹp " + count + " ô đất sai định dạng!";
+            LoadTiles();
+        }
+
+        // Trich toa do tu TileID (VD: "tile_player01_2_3" -> "2_3")
         private string ExtractCoords(string tileID)
         {
             var parts = tileID.Split('_');
             if (parts.Length >= 2)
-                return $"{parts[parts.Length - 2]}_{parts[parts.Length - 1]}";
+                return parts[parts.Length - 2] + "_" + parts[parts.Length - 1];
             return tileID;
         }
     }

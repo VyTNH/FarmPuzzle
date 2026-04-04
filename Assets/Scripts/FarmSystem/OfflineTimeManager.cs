@@ -42,7 +42,9 @@ public class OfflineTimeManager : MonoBehaviour
     // Lưu trạng thái cây trồng vào SQLite (FARM_TILE) thay vì PlayerPrefs
     private void SaveFarmStateToDB()
     {
-        if (DataManager.Instance == null || DataManager.Instance.CurrentPlayer == null) return;
+        // 🔒 CHỐT CHẶN: Chỉ lưu khi DataManager thực sự sẵn sàng và không trong quá trình tắt máy
+        if (DataManager.Instance == null || !DataManager.Instance.IsReady) return;
+        if (DataManager.Instance.CurrentPlayer == null) return;
 
         LandPlot[] allPlots = FindObjectsByType<LandPlot>(FindObjectsSortMode.None);
         string playerID = DataManager.Instance.CurrentPlayer.PlayerID;

@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
+using FarmPuzzle.FarmSystem;
 
 namespace FarmPuzzle.EditorTools
 {
@@ -28,13 +29,16 @@ namespace FarmPuzzle.EditorTools
                 mainCam.orthographicSize = 5f;
                 mainCam.backgroundColor = new Color(0.2f, 0.6f, 0.3f); // Màu cỏ úa nông trại
                 mainCam.transform.position = new Vector3(2.5f, 2.5f, -10f);
+                mainCam.gameObject.AddComponent<CameraAutoFitter>();
             }
 
             // 3. ĐẺ LÕI FARM (GridManager & OfflineTimeManager)
             GameObject farmCore = new GameObject("--- FARM CORE ---");
             var gridMgr = farmCore.AddComponent<GridManager>();
             farmCore.AddComponent<OfflineTimeManager>();
-            var testUI = farmCore.AddComponent<FarmPuzzle.Testing.SandboxTestUI>();
+            
+            SandboxUICreator.CreateSandboxUI();
+            var testUI = Object.FindFirstObjectByType<FarmPuzzle.Testing.SandboxCanvasUI>();
 
             // Quét tìm tất cả Hạt Giống SO trong dự án tự động nạp đạn vào Bảng UI
             string[] seedGuids = AssetDatabase.FindAssets("t:SeedItemSO");
@@ -44,7 +48,7 @@ namespace FarmPuzzle.EditorTools
                 string path = AssetDatabase.GUIDToAssetPath(seedGuids[i]);
                 seedList[i] = AssetDatabase.LoadAssetAtPath<SeedItemSO>(path);
             }
-            testUI.availableSeeds = seedList;
+            if (testUI != null) testUI.availableSeeds = seedList;
             gridMgr.registeredSeeds = seedList; // Để GridManager tra cứu khi restore cây từ DB
 
             // 4. ĐẺ LÕI META (QuestManager)
