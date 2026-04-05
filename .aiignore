@@ -1,0 +1,38 @@
+# Ignore large media and binary files to save tokens and search time
+*.fbx
+*.obj
+*.png
+*.jpg
+*.jpeg
+*.tga
+*.tif
+*.psd
+*.exr
+
+# Audio
+*.mp3
+*.wav
+*.ogg
+*.aif
+
+# Video
+*.mp4
+*.webm
+*.avi
+
+# Ignore meta files by default from text search (we only look at them when specifically tracing GUIDs)
+*.meta
+
+# Compiled fonts
+*.ttf
+*.otf
+
+# You might want to ignore large YAML files from general grep searches
+# and instead use the MCP bridge to query Prefabs and Scenes.
+*.prefab
+*.unity
+*.asset
+
+# Ignore standard third-party directories where we shouldn't edit code
+Assets/Plugins/
+Packages/
