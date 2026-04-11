@@ -226,11 +226,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 54534032}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &44381389
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -479,11 +474,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 913569149}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &60021245
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -796,11 +786,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 1834947289}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &95174088
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -958,11 +943,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 2077409578}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &97242840
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -1279,11 +1259,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 1856348998}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &123808437
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -1441,11 +1416,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 397155241}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &139818628
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -1818,11 +1788,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 1086071587}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &211790489
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -2510,11 +2475,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 1806218371}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &291032586
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -2672,11 +2632,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 1669389873}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &341457523
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -3520,11 +3475,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 1631691617}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &465514543
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -3921,11 +3871,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 763941805}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &537901195
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -4204,11 +4149,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 902574166}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &675003945
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -4577,11 +4517,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 1424654820}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &738418842
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -4909,7 +4844,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GridManager
   plots: []
-  selectedSeed: {fileID: 0}
+  selectedSeed: {fileID: 11400000, guid: 4c8bd5e3565c0f543ae0ddf2adde5efb, type: 2}
   registeredSeeds: []
   selectedCareTool: 0
 --- !u!4 &768060149
@@ -5491,11 +5426,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 2017267591}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &959071235
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -5902,11 +5832,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 209184890}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &1088025479
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -7088,11 +7013,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 416368222}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &1416371593
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -7385,11 +7305,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 2094172020}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &1438864638
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -7626,11 +7541,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 705483047}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &1464703190
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -7788,11 +7698,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 348694761}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &1501657776
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -8705,11 +8610,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 2121582644}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &1665629585
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -9233,11 +9133,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 1218183573}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &1707315014
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -9631,11 +9526,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 2073760978}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &1787368879
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -10054,11 +9944,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 112848774}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &1840630841
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -10621,11 +10506,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 793250311}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &1886688374
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -11331,11 +11211,6 @@ MonoBehaviour:
   plantedSeedID: 
   puzzleLevel: {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   currentNeed: 0
-  needIconRenderer: {fileID: 1589040846}
-  waterSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
-  pestSprite: {fileID: 6260800425527424849, guid: 0d14ea5adb6f61a46909c4e25c3decf5, type: 3}
-  weedSprite: {fileID: -3032953313069012663, guid: c4467152596945241b71e7a2fd29a176, type: 3}
-  harvestSprite: {fileID: 0}
 --- !u!61 &2078086771
 BoxCollider2D:
   m_ObjectHideFlags: 0
