@@ -6,12 +6,12 @@ namespace FarmPuzzle.Meta
     public class QuestManager : MonoBehaviour
     {
         public static QuestManager Instance { get; private set; }
-        public static System.Action OnProgressUpdated; // Báo cho UI QuestWindowUI cập nhật số liệu
 
         [Header("Danh sách mục tiêu màn chơi")]
         public List<QuestDataSO> activeQuests = new List<QuestDataSO>();
 
         private Dictionary<string, int> questProgress = new Dictionary<string, int>();
+        private Dictionary<string, List<QuestDataSO>> _questsByItemId = new Dictionary<string, List<QuestDataSO>>();
 
         private void Awake()
         {
@@ -20,7 +20,6 @@ namespace FarmPuzzle.Meta
                 Instance = this;
                 DontDestroyOnLoad(gameObject);
                 
-                // Tự động khởi tạo nếu đã kéo sẵn trong Inspector
                 if (activeQuests.Count > 0)
                 {
                     InitializeProgress();
@@ -34,34 +33,40 @@ namespace FarmPuzzle.Meta
 
         private void OnEnable()
         {
-            // Nghe tín hiệu giả lập từ QuestTestUI
-            QuestTestUI.OnTestBlockCleared += UpdateProgress;
+            // Nghe tín hiệu thu thập vật phẩm từ hệ thống Gameplay
+            QuestEvents.OnItemCollected += UpdateProgress;
         }
 
         private void OnDisable()
         {
-            QuestTestUI.OnTestBlockCleared -= UpdateProgress;
+            QuestEvents.OnItemCollected -= UpdateProgress;
         }
 
-        /// <summary>
-        /// Khởi tạo lại bảng Tiến độ
-        /// </summary>
         private void InitializeProgress()
         {
             questProgress.Clear();
+            _questsByItemId.Clear();
+
             foreach (var q in activeQuests)
             {
-                if (q != null && !string.IsNullOrEmpty(q.questID))
+                if (q == null || string.IsNullOrEmpty(q.questID)) continue;
+
+                // 1. Khởi tạo tiến độ về 0
+                questProgress[q.questID] = 0;
+
+                // 2. Mapping từ ItemID sang Quest để tìm kiếm nhanh
+                if (!_questsByItemId.ContainsKey(q.targetItemID))
                 {
-                    questProgress[q.questID] = 0;
+                    _questsByItemId[q.targetItemID] = new List<QuestDataSO>();
                 }
+                _questsByItemId[q.targetItemID].Add(q);
             }
         }
 
         public void StartLevel(List<QuestDataSO> levelQuests)
         {
             activeQuests.Clear();
-            foreach (var q in levelQuests) activeQuests.Add(q);
+            activeQuests.AddRange(levelQuests);
 
             InitializeProgress();
             Debug.Log("<color=green>[Level]</color> Khởi động màn chơi mới.");
@@ -69,38 +74,49 @@ namespace FarmPuzzle.Meta
 
         public void UpdateProgress(string itemID, int amount)
         {
-            bool hasChanged = false;
-            foreach (var quest in activeQuests)
+            // TỐI ƯU: Chỉ tìm trong những Quest cần Item này thay vì lặp toàn bộ list
+            if (!_questsByItemId.TryGetValue(itemID, out List<QuestDataSO> relevantQuests))
             {
-                if (quest.targetItemID == itemID)
+                return;
+            }
+
+            bool hasChanged = false;
+            foreach (var quest in relevantQuests)
+            {
+                int currentVal = questProgress[quest.questID];
+                int newVal = Mathf.Min(currentVal + amount, quest.targetAmount);
+                
+                if (newVal != currentVal)
                 {
-                    int currentVal = questProgress[quest.questID];
-                    questProgress[quest.questID] = Mathf.Min(currentVal + amount, quest.targetAmount);
+                    questProgress[quest.questID] = newVal;
+                    // Báo hiệu cập nhật cho từng Quest cụ thể
+                    QuestEvents.OnQuestProgressUpdated?.Invoke(quest.questID, newVal, quest.targetAmount);
                     
-                    Debug.Log($"<color=yellow>[Goal]</color> {itemID}: {questProgress[quest.questID]}/{quest.targetAmount}");
+                    Debug.Log($"<color=yellow>[Goal]</color> {itemID}: {newVal}/{quest.targetAmount}");
                     hasChanged = true;
                 }
             }
 
             if (hasChanged)
             {
-                OnProgressUpdated?.Invoke();
+                // Báo hiệu UI chung cập nhật nếu cần
+                QuestEvents.OnGeneralProgressUpdated?.Invoke();
                 CheckAllGoals();
             }
         }
 
         public int GetQuestProgress(string questID)
         {
-            if (questProgress.TryGetValue(questID, out int progress))
-            {
-                return progress;
-            }
-            return 0;
+            return questProgress.TryGetValue(questID, out int progress) ? progress : 0;
         }
 
         private void CheckAllGoals()
         {
+            if (activeQuests.Count == 0) return;
+
             bool allDone = true;
+            int totalReward = 0;
+
             foreach (var quest in activeQuests)
             {
                 if (questProgress[quest.questID] < quest.targetAmount)
@@ -108,19 +124,13 @@ namespace FarmPuzzle.Meta
                     allDone = false;
                     break;
                 }
+                totalReward += quest.rewardGold;
             }
 
-            if (allDone && activeQuests.Count > 0)
+            if (allDone)
             {
-                int totalReward = 0;
-                foreach (var q in activeQuests) totalReward += q.rewardGold;
-
                 Debug.Log($"<color=cyan>[WIN]</color> Hoàn thành màn chơi! Thưởng: {totalReward} Vàng.");
-                
-                // Gọi sự kiện thắng thông qua QuestTestUI
-                QuestTestUI.OnTestLevelWin?.Invoke(totalReward);
-                
-                activeQuests.Clear();
+                QuestEvents.OnLevelWin?.Invoke(totalReward);
             }
         }
 
@@ -128,7 +138,7 @@ namespace FarmPuzzle.Meta
         [ContextMenu("Test - Add Apple")]
         private void Test_AddApple()
         {
-            QuestTestUI.OnTestBlockCleared?.Invoke("Apple", 1);
+             QuestEvents.OnItemCollected?.Invoke("Apple", 1);
         }
         #endregion
     }
