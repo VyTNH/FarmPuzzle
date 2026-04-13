@@ -6036,7 +6036,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GridManager
   plots: []
-  selectedSeed: {fileID: 0}
+  selectedSeed: {fileID: 11400000, guid: 4c8bd5e3565c0f543ae0ddf2adde5efb, type: 2}
   registeredSeeds: []
   selectedCareTool: 0
 --- !u!4 &768060149
