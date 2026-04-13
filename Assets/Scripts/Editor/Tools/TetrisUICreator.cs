@@ -6,7 +6,7 @@ using FarmPuzzle.Tetris;
 
 public class TetrisUICreator : Editor
 {
-    [MenuItem("FarmPuzzle/Tạo UI Tetris Xuất Hàng (Canvas)", false, 11)]
+    // [MenuItem("FarmPuzzle/Tạo UI Tetris Xuất Hàng (Canvas)", false, 11)]
     public static void CreateTetrisUI()
     {
         // Xóa cũ

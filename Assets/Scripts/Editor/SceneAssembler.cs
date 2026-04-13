@@ -7,7 +7,7 @@ namespace FarmPuzzle.EditorTools
 {
     public class SceneAssembler : EditorWindow
     {
-        [MenuItem("FarmPuzzle/2. Auto-Assemble MainFarm Scene")]
+        // [MenuItem("FarmPuzzle/2. Auto-Assemble MainFarm Scene")]
         public static void AssembleScenes()
         {
             if (!EditorUtility.DisplayDialog("Xác nhận Gộp Scene", 

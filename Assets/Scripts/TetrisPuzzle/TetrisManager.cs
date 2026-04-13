@@ -14,7 +14,7 @@ namespace FarmPuzzle.Tetris
         public Image blockPrefab;
         public TetrisCropMapSO cropMapSO;
         public Text inventoryText;
-        public Text questText;
+        [HideInInspector] public Text questText; // Deprecated — dùng QuestPanelManager
 
         [Header("Settings")]
         public float fallSpeed = 1f;
@@ -130,34 +130,34 @@ namespace FarmPuzzle.Tetris
             SpawnPiece();
         }
 
-        public void UpdateQuestUI()
-        {
-            if (questText == null) return;
-            if (FarmPuzzle.Meta.QuestManager.Instance == null || FarmPuzzle.Meta.QuestManager.Instance.activeQuests.Count == 0)
-            {
-                questText.text = "📜 ĐƠN HÀNG: Trống";
-                return;
-            }
-
-            string qText = "📜 Tiến Độ Đơn Hàng:\n";
-            foreach (var q in FarmPuzzle.Meta.QuestManager.Instance.activeQuests)
-            {
-                qText += $"- {q.targetAmount} {q.targetItemID}: {FarmPuzzle.Meta.QuestManager.Instance.GetQuestProgress(q.questID)}/{q.targetAmount}\n";
-            }
-            questText.text = qText;
-        }
+        /// <summary>
+        /// Deprecated — QuestPanelManager tự refresh thông qua QuestManager.OnProgressUpdated.
+        /// Giữ lại để tránh compile error ở các script cũ gọi method này.
+        /// </summary>
+        public void UpdateQuestUI() { }
 
         public void GameOver()
         {
+            if (!isPlaying) return;
             isPlaying = false;
             Debug.Log("<color=red>[Tetris]</color> GAME OVER!");
+            // Kết thúc phiên quest (nếu chưa kết thúc)
+            FarmPuzzle.Meta.QuestManager.Instance?.TriggerGameOver();
         }
 
         public void SpawnPiece()
         {
-            // Lấy ngẫu nhiên nông sản trong Kho (inventory)
-            var inv = DataManager.Instance.DB.Table<InventoryModel>().Where(i => i.PlayerID == DataManager.Instance.CurrentPlayer.PlayerID).ToList();
-            var cropInv = inv.FindAll(i => i.ItemID.StartsWith("product_"));
+            // Lấy tất cả nông sản trong Kho từ RAM Session thay vì Database cứng (để bắt kịp nhịp test)
+            var sessionInv = DataManager.Instance.GetSessionInventory();
+            var cropInv = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, int>>();
+            
+            foreach (var kvp in sessionInv)
+            {
+                if (kvp.Key.StartsWith("product_") && kvp.Value > 0)
+                {
+                    cropInv.Add(kvp);
+                }
+            }
 
             int totalStock = 0;
             if (cropInv.Count == 0)
@@ -169,27 +169,23 @@ namespace FarmPuzzle.Tetris
             }
             else
             {
-                // Chọn Random Nông Sản ĐANG CÓ TRONG KHO
+                // Chọn ngẫu nhiên nông sản đang có trong kho
                 var randomCrop = cropInv[Random.Range(0, cropInv.Count)];
-                currentProductID = randomCrop.ItemID;
-                totalStock = randomCrop.Quantity;
+                currentProductID = randomCrop.Key;
+                totalStock = randomCrop.Value;
                 if (inventoryText != null) inventoryText.text = $"Rơi: {currentProductID} | Kho: {totalStock}";
 
                 if (cropMapSO != null)
                 {
-                    // Lấy hình ảnh từ ánh xạ
                     var map = cropMapSO.GetMapping(currentProductID);
-                    if (map != null)
-                    {
-                        currentSprite = map.tetrisSprite;
-                        currentColor = map.fallBackColor;
-                    }
-                    else { currentSprite = null; currentColor = Color.gray; }
+                    if (map != null) { currentSprite = map.tetrisSprite; currentColor = map.fallBackColor; }
+                    else             { currentSprite = null; currentColor = Color.gray; }
                 }
                 else { currentSprite = null; currentColor = Color.gray; }
 
-                // -- DEDUCT ITEM FROM DB --
-                DataManager.Instance.RemoveItem(currentProductID, 1);
+                // ── Bước 4 FIX: KHÔNG trừ item ở đây.
+                // Item chỉ bị trừ khi hàng bị xóa thành công (CheckLines).
+                // Điều này đảm bảo Game Over không làm mất item oan.
             }
 
             int shapeIdx = Random.Range(0, Tetrominoes.Length);
@@ -396,22 +392,28 @@ namespace FarmPuzzle.Tetris
 
                 if (isFull)
                 {
-                    // Phát điện tín gửi hệ thống Quest cho từng loại crop bị triệt tiêu!
+                    // ── Score: +10 điểm cố định mỗi hàng xóa ──
+                    FarmPuzzle.Meta.QuestManager.Instance?.AddScore(10);
+
+                    // Đếm loại nông sản bị xóa trong hàng này
                     Dictionary<string, int> destroyedCrops = new Dictionary<string, int>();
                     for (int x = 0; x < width; x++)
                     {
                         string pid = boardTypes[x, y];
+                        if (string.IsNullOrEmpty(pid)) continue;
                         if (!destroyedCrops.ContainsKey(pid)) destroyedCrops[pid] = 0;
                         destroyedCrops[pid]++;
                     }
 
-                    foreach(var kvp in destroyedCrops)
+                    foreach (var kvp in destroyedCrops)
                     {
-                        Debug.Log($"<color=green>[Tetris-Quest]</color> Đã dọn dẹp hàng: Ghi nhận {kvp.Value} {kvp.Key} cho Orders!");
-                        if (FarmPuzzle.Meta.QuestManager.Instance != null)
-                        {
-                            FarmPuzzle.Meta.QuestManager.Instance.UpdateProgress(kvp.Key, kvp.Value);
-                        }
+                        Debug.Log($"<color=green>[Tetris]</color> Xóa hàng thành công: {kvp.Value}x {kvp.Key}");
+
+                        // ── Bước 4 FIX: Trừ item tại đây — chỉ khi xóa hàng thành công ──
+                        DataManager.Instance?.RemoveItem(kvp.Key, kvp.Value);
+
+                        // Cập nhật tiến độ Quest
+                        FarmPuzzle.Meta.QuestManager.Instance?.UpdateProgress(kvp.Key, kvp.Value);
                     }
 
                     // Kéo lưới xuống

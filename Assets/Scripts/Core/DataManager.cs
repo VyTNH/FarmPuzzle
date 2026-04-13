@@ -1,17 +1,33 @@
 using UnityEngine;
 using SQLite;
+using System;
 using System.IO;
 using FarmPuzzle.Core.Database;
+using System.Linq;
 
 public class DataManager : MonoBehaviour
 {
     public static DataManager Instance { get; private set; }
     public SQLiteConnection DB { get; private set; }
 
+    // ─── GRID CONFIG — Single source of truth cho kích thước farm ───
+    private const int GRID_W = 5;
+    private const int GRID_H = 5;
+    public static int GridWidth  => Instance != null ? GRID_W : 5;
+    public static int GridHeight => Instance != null ? GRID_H : 5;
+
+    // ─── EVENTS: Bắn khi kho đồ thay đổi (để UI lắng nghe, không cần polling) ───
+    /// <summary>Fire khi số lượng item đã có thay đổi. (itemID, newQuantity)</summary>
+    public static event Action<string, int> OnInventoryChanged;
+    /// <summary>Fire khi item hoàn toàn mới xuất hiện trong kho (lần đầu). (itemID, initialQty)</summary>
+    public static event Action<string, int> OnInventoryItemAdded;
+    /// <summary>Fire sau khi player login xong — UI có thể bắt đầu build toàn bộ inventory.</summary>
+    public static event Action OnPlayerLoggedIn;
+
     // Thông tin người chơi hiện tại đang kết nối (Giống PlayerSession)
     public PlayerModel CurrentPlayer { get; private set; }
 
-    // MỚI: Kiểm tra xem DB có đang mở và sẵn sàng làm việc không
+    // Mới: Kiểm tra xem DB có đang mở và sẵn sàng làm việc không
     public bool IsReady => (DB != null && !_isClosing);
     private bool _isClosing = false;
 
@@ -51,6 +67,8 @@ public class DataManager : MonoBehaviour
     // ==== HỆ THỐNG ĐĂNG NHẬP / TẠO TÀI KHOẢN (SINGLE-PLAYER) ====
     public bool LoginPlayer(string userID, string userName)
     {
+        Debug.Log($"[LOG-LOGIN] Bắt đầu quy trình kiểm tra Database cho ID: {userID}...");
+        
         // 1. Dùng Database quét xem ID này đã đăng ký Game chưa
         var player = DB.Table<PlayerModel>().Where(p => p.PlayerID == userID).FirstOrDefault();
         
@@ -58,14 +76,21 @@ public class DataManager : MonoBehaviour
         {
             // TÌM THẤY TÀI KHOẢN -> LOAD XONG
             CurrentPlayer = player;
-            Debug.Log($"[LOGIN] Đăng nhập thành công! Chào mừng trở lại {CurrentPlayer.Name}");
-            
-            // Kiểm tra FARM_TILE có đúng format 5x5 (x_y) không, nếu lỗi → tái tạo
+            CacheInventoryFromDB();
+            Debug.Log($"<color=green>[LOG-LOGIN] TÀI KHOẢN TỒN TẠI!</color> Chào mừng trở lại {CurrentPlayer.Name} (ID: {userID})");
+
+            // Kiểm tra FARM_TILE có đúng format (x_y) không, nếu lỗi → tái tạo
             ValidateAndRepairFarmTiles(userID);
+
+            // Patch item slot mới (nếu game vừa thêm item mới kể từ lần chơi trước)
+            MigratePlayerData(userID);
+
+            OnPlayerLoggedIn?.Invoke();
             return true;
         }
         else
         {
+            Debug.Log($"<color=yellow>[LOG-LOGIN] ID CHƯA TỒN TẠI!</color> Hệ thống sẽ tiến hành xóa dữ liệu Single-player cũ và tạo tài khoản mới cho: {userName}");
             // SINGLE-PLAYER: Xóa sạch dữ liệu cũ trước khi tạo mới
             WipeAllPlayerData();
             return CreateNewPlayer(userID, userName);
@@ -84,58 +109,61 @@ public class DataManager : MonoBehaviour
         Debug.Log("[DataManager] Đã xóa sạch dữ liệu tài khoản cũ (Single-player reset).");
     }
 
-    // Kiem tra FARM_TILE dung format tile_playerID_x_y. Neu loi -> tai tao.
+    // Kiểm tra FARM_TILE đúng format tile_playerID_x_y. Nếu lỗi -> tái tạo.
     private void ValidateAndRepairFarmTiles(string userID)
     {
         var existingTiles = DB.Table<FarmTileModel>().Where(t => t.PlayerID == userID).ToList();
-        
-        // Kiem tra: it nhat phai co 25 o (mac dinh tutorial)
+
+        int expectedCount = GRID_W * GRID_H;
         bool needRepair = false;
-        if (existingTiles.Count < 25)
+        if (existingTiles.Count < expectedCount)
         {
             needRepair = true;
-            Debug.LogWarning("[DataManager] FARM_TILE chi co " + existingTiles.Count + " o (it nhat can 25). Se tai tao.");
+            Debug.LogWarning($"[DataManager] FARM_TILE chỉ có {existingTiles.Count} ô (cần ít nhất {expectedCount}). Sẽ tái tạo.");
         }
         else
         {
-            // Kiem tra format mot o bat ky de dam bao tinh toan ven
-            string expectedSample = "tile_" + userID + "_0_0";
+            string expectedSample = $"tile_{userID}_0_0";
             if (!existingTiles.Exists(t => t.TileID == expectedSample))
             {
                 needRepair = true;
-                Debug.LogWarning("[DataManager] FARM_TILE sai format (thieu toa do x_y). Se tai tao.");
+                Debug.LogWarning("[DataManager] FARM_TILE sai format (thiếu tọa độ x_y). Sẽ tái tạo.");
             }
         }
 
         if (needRepair)
         {
-            // Xóa tiles cũ
             foreach (var old in existingTiles) DB.Delete(old);
-            
-            // Tạo lại 25 ô đúng format
-            int gridW = 5, gridH = 5;
-            for (int x = 0; x < gridW; x++)
+            CreateFarmTiles(userID);    // dùng hàm chung
+            Debug.Log($"[LOG-REPAIR] Đã tái tạo {GRID_W * GRID_H} ô FARM_TILE đúng format {GRID_W}x{GRID_H}!");
+        }
+    }
+
+    /// <summary>Tạo các FARM_TILE mới cho player theo cấu hình GRID_W x GRID_H.</summary>
+    private void CreateFarmTiles(string userID)
+    {
+        for (int x = 0; x < GRID_W; x++)
+        {
+            for (int y = 0; y < GRID_H; y++)
             {
-                for (int y = 0; y < gridH; y++)
-                {
-                    bool isEdge = (x == 0 || x == gridW - 1 || y == 0 || y == gridH - 1);
-                    DB.Insert(new FarmTileModel {
-                        TileID = $"tile_{userID}_{x}_{y}",
-                        PlayerID = userID,
-                        State = isEdge ? 0 : 1,
-                        PlantedSeedID = "",
-                        PlantTimeTicks = 0,
-                        HasObstacle = isEdge,
-                        ObstacleID = isEdge ? "rock_default" : ""
-                    });
-                }
+                bool isEdge = (x == 0 || x == GRID_W - 1 || y == 0 || y == GRID_H - 1);
+                DB.Insert(new FarmTileModel {
+                    TileID         = $"tile_{userID}_{x}_{y}",
+                    PlayerID       = userID,
+                    State          = isEdge ? 0 : 1,
+                    PlantedSeedID  = "",
+                    PlantTimeTicks = 0,
+                    HasObstacle    = isEdge,
+                    ObstacleID     = isEdge ? "rock_default" : ""
+                });
             }
-            Debug.Log("[DataManager] Đã tái tạo 25 ô FARM_TILE đúng format 5x5!");
         }
     }
 
     private bool CreateNewPlayer(string userID, string userName)
     {
+        Debug.Log($"[LOG-INIT] Bắt đầu khởi tạo dữ liệu ERD cho người chơi: {userName}...");
+        
         // 1. Tạo Tài khoản Người chơi
         var newPlayer = new PlayerModel {
             PlayerID = userID,
@@ -144,44 +172,71 @@ public class DataManager : MonoBehaviour
             Money = 500 // Tiền khởi nghiệp
         };
         DB.Insert(newPlayer);
+        Debug.Log($"- Đã tạo dòng mới trong bảng PLAYER: {userName} | 💰 khởi tạo: 500G");
 
         // 2. Tặng Vũ Khí & Hạt giống đầu tay (Bảng Inventory)
-        DB.Insert(new InventoryModel { PlayerID = userID, ItemID = "seed_carrot", Quantity = 10 });
-        DB.Insert(new InventoryModel { PlayerID = userID, ItemID = "tool_hoe", Quantity = 1 });
-        DB.Insert(new InventoryModel { PlayerID = userID, ItemID = "tool_watercan", Quantity = 1 });
+        DB.Insert(new InventoryModel { PlayerID = userID, ItemID = "seed_01",        Quantity = 5  });  // Khoai Tây
+        DB.Insert(new InventoryModel { PlayerID = userID, ItemID = "seed_02",        Quantity = 5  });  // Cà rốt
+        DB.Insert(new InventoryModel { PlayerID = userID, ItemID = "tool_hoe",       Quantity = 1  });
+        DB.Insert(new InventoryModel { PlayerID = userID, ItemID = "tool_watercan",  Quantity = 1  });
+        DB.Insert(new InventoryModel { PlayerID = userID, ItemID = "tool_pest",      Quantity = 3  });
+        DB.Insert(new InventoryModel { PlayerID = userID, ItemID = "item_fertilizer",Quantity = 5  });
+        Debug.Log("- Đã thêm Starter Kit: seed_01 x5, seed_02 x5, tool_hoe, tool_watercan, tool_pest x3, item_fertilizer x5.");
 
-        // 3. Phân chia 25 lô đất mặc định 5x5 (Bảng Farm_Tile)
-        int gridW = 5, gridH = 5;
-        for (int x = 0; x < gridW; x++)
-        {
-            for (int y = 0; y < gridH; y++)
-            {
-                // Rìa ngoài (State=0 khóa), giữa 3x3 (State=1 mở sẵn)
-                bool isEdge = (x == 0 || x == gridW - 1 || y == 0 || y == gridH - 1);
-                DB.Insert(new FarmTileModel {
-                    TileID = $"tile_{userID}_{x}_{y}",
-                    PlayerID = userID,
-                    State = isEdge ? 0 : 1, // 0=khóa, 1=mở
-                    PlantedSeedID = "",
-                    PlantTimeTicks = 0,
-                    HasObstacle = isEdge, // Rìa có chướng ngại mặc định
-                    ObstacleID = isEdge ? "rock_default" : ""
-                });
-            }
-        }
-
-        // 4. Nhồi nhiệm vụ tân thủ (Bảng Player_Quest)
-        DB.Insert(new PlayerQuestModel {
-            PlayerID = userID,
-            QuestID = "quest_first_harvest",
-            QuestProgress = 0,
-            IsBanned = false
-        });
+        // 3. Phân chia lô đất mặc định (lấy từ GRID_W x GRID_H)
+        CreateFarmTiles(userID);
+        Debug.Log($"- Đã phân phối {GRID_W * GRID_H} ô đất FARM_TILE ({GRID_W}x{GRID_H}).");
 
         // Đổ data vào RAM để dùng trong quá trình Game Loop chạy
         CurrentPlayer = newPlayer;
-        Debug.Log($"[LOGIN] Đã tạo thành công Nông dân mới: {userName}. Cấu hình toàn bộ ERD tân thủ thành công!");
+        CacheInventoryFromDB();
+        CacheInventoryFromDB();
+
+        Debug.Log("- Da phan phoi day du Starter Kit vao SQLite.");
+        OnPlayerLoggedIn?.Invoke();
         return true;
+    }
+
+    // ==== SESSION INVENTORY (RAM) ====
+    private System.Collections.Generic.Dictionary<string, int> _sessionInventory = new System.Collections.Generic.Dictionary<string, int>();
+    private System.Collections.Generic.HashSet<string> _sessionChanges = new System.Collections.Generic.HashSet<string>();
+
+    public System.Collections.Generic.Dictionary<string, int> GetSessionInventory()
+    {
+        return _sessionInventory;
+    }
+
+    private void CacheInventoryFromDB()
+    {
+        _sessionInventory.Clear();
+        _sessionChanges.Clear();
+        if (CurrentPlayer == null) return;
+        var items = DB.Table<InventoryModel>().Where(i => i.PlayerID == CurrentPlayer.PlayerID).ToList();
+        foreach (var item in items) _sessionInventory[item.ItemID] = item.Quantity;
+    }
+
+    public void CommitSessionInventory()
+    {
+        if (CurrentPlayer == null || _sessionChanges.Count == 0) return;
+        DB.RunInTransaction(() =>
+        {
+            foreach (var itemID in _sessionChanges)
+            {
+                int newQty = _sessionInventory.ContainsKey(itemID) ? _sessionInventory[itemID] : 0;
+                var inv = DB.Table<InventoryModel>().FirstOrDefault(i => i.PlayerID == CurrentPlayer.PlayerID && i.ItemID == itemID);
+                if (inv != null)
+                {
+                    inv.Quantity = newQty;
+                    DB.Update(inv);
+                }
+                else if (newQty > 0)
+                {
+                    DB.Insert(new InventoryModel { PlayerID = CurrentPlayer.PlayerID, ItemID = itemID, Quantity = newQty });
+                }
+            }
+        });
+        Debug.Log($"<color=green>[DataManager]</color> Đã đồng bộ {_sessionChanges.Count} loại item xuống Database thành công!");
+        _sessionChanges.Clear();
     }
 
     // ==== CÁC HÀM GIAO TIẾP VỚI CÁC MODULE KHÁC ====
@@ -195,33 +250,44 @@ public class DataManager : MonoBehaviour
 
     public void AddItem(string itemID, int amount)
     {
-        if (CurrentPlayer == null) return;
-        var inv = DB.Table<InventoryModel>().FirstOrDefault(i => i.PlayerID == CurrentPlayer.PlayerID && i.ItemID == itemID);
-        if (inv != null)
-        {
-            inv.Quantity += amount;
-            DB.Update(inv);
-        }
-        else
-        {
-            DB.Insert(new InventoryModel { PlayerID = CurrentPlayer.PlayerID, ItemID = itemID, Quantity = amount });
-        }
-        Debug.Log($"[DataManager] Kho đồ Update: Nhận {amount}x {itemID}");
+        if (CurrentPlayer == null || amount <= 0) return;
+        
+        int currentQty = _sessionInventory.ContainsKey(itemID) ? _sessionInventory[itemID] : 0;
+        int newQty = currentQty + amount;
+        _sessionInventory[itemID] = newQty;
+        _sessionChanges.Add(itemID);
+
+        Debug.Log($"[DataManager-RAM] Kho đồ thêm: +{amount}x {itemID} (Tổng: {newQty})");
+        
+        if (currentQty == 0) OnInventoryItemAdded?.Invoke(itemID, amount);
+        else OnInventoryChanged?.Invoke(itemID, newQty);
     }
 
     public bool RemoveItem(string itemID, int amount)
     {
         if (CurrentPlayer == null) return false;
-        var inv = DB.Table<InventoryModel>().FirstOrDefault(i => i.PlayerID == CurrentPlayer.PlayerID && i.ItemID == itemID);
-        if (inv != null && inv.Quantity >= amount)
+        
+        int currentQty = _sessionInventory.ContainsKey(itemID) ? _sessionInventory[itemID] : 0;
+        if (currentQty >= amount)
         {
-            inv.Quantity -= amount;
-            DB.Update(inv);
-            Debug.Log($"[DataManager] Kho đồ Update: Trừ {amount}x {itemID}. Còn {inv.Quantity}");
+            int newQty = currentQty - amount;
+            _sessionInventory[itemID] = newQty;
+            _sessionChanges.Add(itemID);
+            Debug.Log($"[DataManager-RAM] Kho đồ trừ: -{amount}x {itemID}. Còn {newQty}");
+            OnInventoryChanged?.Invoke(itemID, newQty);
             return true;
         }
-        Debug.LogWarning($"[DataManager] Không đủ {amount}x {itemID} trong kho để trừ!");
+        
+        Debug.LogWarning($"[DataManager-RAM] Không đủ {amount}x {itemID} trong kho để trừ! (Có: {currentQty})");
         return false;
+    }
+
+    // ==== TRUY VẤN KHO ĐỒ ====
+    public int GetItemAmount(string itemID)
+    {
+        if (!IsReady || CurrentPlayer == null) return 0;
+        var inv = DB.Table<InventoryModel>().FirstOrDefault(i => i.PlayerID == CurrentPlayer.PlayerID && i.ItemID == itemID);
+        return inv != null ? inv.Quantity : 0;
     }
 
     // ==== API NÔNG TRẠI (FARM_TILE) ====
@@ -246,11 +312,59 @@ public class DataManager : MonoBehaviour
 
     private void InitStaticData()
     {
+        // ── Bước 1: Đảm bảo catalog hạt giống / nông sản tồn tại ──
         if (DB.Table<SeedItemModel>().Count() == 0)
         {
-            DB.Insert(new SeedItemModel { SeedID = "seed_carrot", Name = "Hạt Cà Rốt", BuyPrice = 10 });
-            DB.Insert(new ProductItemModel { ProductID = "prod_carrot", Name = "Củ Cà Rốt", Type = "Vegetable", SellPrice = 25 });
+            DB.Insert(new SeedItemModel { SeedID = "seed_01", Name = "Hạt Giống Khoai Tây", BuyPrice = 15 });
+            DB.Insert(new SeedItemModel { SeedID = "seed_02", Name = "Hạt Giống Cà Rốt",   BuyPrice = 20 });
+            DB.Insert(new SeedItemModel { SeedID = "seed_03", Name = "Hạt Giống Bắp Cải",  BuyPrice = 25 });
+            DB.Insert(new SeedItemModel { SeedID = "seed_04", Name = "Hạt Giống Cà Chua",  BuyPrice = 40 });
+
+            DB.Insert(new ProductItemModel { ProductID = "product_01", Name = "Khoai Tây", Type = "Vegetable", SellPrice = 30 });
+            DB.Insert(new ProductItemModel { ProductID = "product_02", Name = "Cà Rốt",   Type = "Vegetable", SellPrice = 40 });
+            DB.Insert(new ProductItemModel { ProductID = "product_03", Name = "Bắp Cải",  Type = "Vegetable", SellPrice = 50 });
+            DB.Insert(new ProductItemModel { ProductID = "product_04", Name = "Cà Chua",  Type = "Vegetable", SellPrice = 60 });
         }
+        // → Để thêm seed mới: chỉ cần thêm DB.Insert() ở đây + chạy Migrate.
+        // → Mission:
+        //    DB.Insert(new SeedItemModel { SeedID = "seed_05", Name = "Cầu Vồng", BuyPrice = 60 });
+    }
+
+    /// <summary>
+    /// Migration: Phát hiện và vá các item mới trong Starter Kit cho player cũ.
+    /// Gọi sau LoginPlayer() khi tài khoản đã tồn tại.
+    /// KHAI TE tài khoản cũ: chỉ thêm item mới với qty=0, KHÔNG reset định mức cũ.
+    /// </summary>
+    private void MigratePlayerData(string userID)
+    {
+        // Danh sách tất cả item mà player bất kỳ đều nên có slot (dù đang = 0)
+        var expectedItems = new System.Collections.Generic.Dictionary<string, int>
+        {
+            { "seed_01",         0 },   // slot rỗng nếu chưa có
+            { "seed_02",         0 },
+            { "seed_03",         0 },
+            { "seed_04",         0 },
+            { "tool_hoe",        0 },
+            { "tool_watercan",   0 },
+            { "tool_pest",       0 },
+            { "item_fertilizer", 0 },
+            // → thêm item mới ở đây khi data mở rộng
+        };
+
+        int patched = 0;
+        foreach (var entry in expectedItems)
+        {
+            bool exists = DB.Table<InventoryModel>()
+                .Any(i => i.PlayerID == userID && i.ItemID == entry.Key);
+            if (!exists)
+            {
+                DB.Insert(new InventoryModel { PlayerID = userID, ItemID = entry.Key, Quantity = entry.Value });
+                patched++;
+                Debug.Log($"[Migration] Vá slot mới cho player cũ: {entry.Key} (qty={entry.Value})");
+            }
+        }
+        if (patched > 0)
+            Debug.Log($"<color=cyan>[Migration] Hoàn tất: đã patch {patched} item slot mới cho {userID}.</color>");
     }
 
     private void OnApplicationQuit()

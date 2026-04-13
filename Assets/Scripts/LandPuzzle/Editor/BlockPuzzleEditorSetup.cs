@@ -42,7 +42,7 @@ namespace FarmPuzzle.LandPuzzle.Editor
         private GridObstacleData _obstacleData1;
         private GridObstacleData _obstacleData2;
 
-        [MenuItem("FarmPuzzle/Block Puzzle/Setup Scene", false, 1)]
+        // [MenuItem("FarmPuzzle/Block Puzzle/Setup Scene", false, 1)]
         public static void ShowWindow()
         {
             var w = GetWindow<BlockPuzzleEditorSetup>("Block Puzzle Setup");

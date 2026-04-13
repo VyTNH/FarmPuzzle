@@ -56,7 +56,7 @@ public class DatabaseTesterWindow : EditorWindow
         }
     }
 
-    [MenuItem("FarmPuzzle/Tra Cứu Database (Chuẩn ERD) & JSON")]
+    // [MenuItem("FarmPuzzle/Tra Cứu Database (Chuẩn ERD) & JSON")]
     public static void ShowWindow()
     {
         GetWindow<DatabaseTesterWindow>("Tra Cứu ERD", true, typeof(EditorWindow));

@@ -15,7 +15,7 @@ namespace FarmPuzzle.CropEditor.Tools
         private Sprite _pestIcon;
         private Vector2 _scrollPos;
 
-        [MenuItem("Tools/FarmPuzzle/Crop Prefab Baker v2")]
+        // [MenuItem("Tools/FarmPuzzle/Crop Prefab Baker v2")]
         public static void ShowWindow()
         {
             GetWindow<CropPrefabBaker>("Crop Baker v2");

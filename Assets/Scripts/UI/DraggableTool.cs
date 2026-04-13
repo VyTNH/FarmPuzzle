@@ -18,6 +18,7 @@ namespace FarmPuzzle.UI
         private CanvasGroup _canvasGroup;
         private Vector2 _startPosition;
         private Transform _originalParent;
+        private LandPlot _lastHighlightedPlot;
 
         private void Awake()
         {
@@ -51,10 +52,37 @@ namespace FarmPuzzle.UI
             {
                 _rectTransform.localPosition = localPointerPosition;
             }
+
+            // Highlight logic
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            RaycastHit2D hit = Physics2D.Raycast(ray.origin, ray.direction);
+            
+            LandPlot currentPlot = hit.collider != null ? hit.collider.GetComponent<LandPlot>() : null;
+            if (currentPlot != _lastHighlightedPlot)
+            {
+                if (_lastHighlightedPlot != null) _lastHighlightedPlot.SetHighlight(false, false);
+                _lastHighlightedPlot = currentPlot;
+            }
+
+            if (_lastHighlightedPlot != null)
+            {
+                bool isValid = false;
+                if (isHarvestTool) isValid = _lastHighlightedPlot.CanHarvest();
+                else if (toolType != CropNeedType.None) isValid = _lastHighlightedPlot.isOccupied && !isHarvestTool;
+                else if (seedData != null) isValid = !_lastHighlightedPlot.isOccupied && !_lastHighlightedPlot.isLocked;
+                
+                _lastHighlightedPlot.SetHighlight(true, isValid);
+            }
         }
 
         public void OnEndDrag(PointerEventData eventData)
         {
+            if (_lastHighlightedPlot != null)
+            {
+                _lastHighlightedPlot.SetHighlight(false, false);
+                _lastHighlightedPlot = null;
+            }
+
             // Trả icon về chỗ cũ
             _canvasGroup.alpha = 1f;
             _canvasGroup.blocksRaycasts = true;

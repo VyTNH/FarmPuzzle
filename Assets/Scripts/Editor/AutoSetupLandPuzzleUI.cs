@@ -12,7 +12,7 @@ namespace FarmPuzzle.EditorTools
 {
     public class AutoSetupLandPuzzleUI : UnityEditor.Editor
     {
-        [MenuItem("FarmPuzzle/6. 🔥 BÊ NGUYÊN PUZZLE CỦA QUYẾT VÀO SCENE NÀY")]
+        // [MenuItem("FarmPuzzle/6. 🔥 BÊ NGUYÊN PUZZLE CỦA QUYẾT VÀO SCENE NÀY")]
         public static void SetupUI()
         {
             Debug.Log("<color=orange>[Setup Tool]</color> Bắt đầu cài đặt hệ thống Puzzle...");

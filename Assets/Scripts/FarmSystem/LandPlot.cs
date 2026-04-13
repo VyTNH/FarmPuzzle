@@ -33,7 +33,8 @@ public class LandPlot : MonoBehaviour
     void Awake()
     {
         BoxCollider2D col = GetComponent<BoxCollider2D>();
-        if (col != null) col.isTrigger = true; 
+        // KHÔNG set isTrigger = true ở đây — Physics2D.Raycast cần isTrigger=false để detect click!
+        // isTrigger được quản lý từ Inspector (mặc định false).
 
         tileRenderer = GetComponent<SpriteRenderer>();
         if (tileRenderer == null)
@@ -172,11 +173,46 @@ public class LandPlot : MonoBehaviour
 
     public void ApplyCare(CropNeedType careType)
     {
-        if (currentNeed == careType)
+        string itemID = "";
+        bool isConsumable = false;
+
+        switch (careType)
         {
-            currentNeed = CropNeedType.None;
-            if (_cropGrowth != null) _cropGrowth.ResolveNeed(careType);
+            case CropNeedType.Water: itemID = "tool_watercan"; isConsumable = false; break; // VĨNH VIỄN!
+            case CropNeedType.Pest: itemID = "tool_pest"; isConsumable = true; break; // TIÊU HAO!
+            case CropNeedType.Fertilizer: itemID = "item_fertilizer"; isConsumable = true; break; // TIÊU HAO!
         }
+
+        if (string.IsNullOrEmpty(itemID)) return;
+
+        // Nếu là hàng TIÊU HAO -> Kiểm tra và trừ vật phẩm
+        if (isConsumable)
+        {
+            if (DataManager.Instance != null && DataManager.Instance.RemoveItem(itemID, 1))
+            {
+                ApplyCareEffect(careType, itemID);
+            }
+            else
+            {
+                Debug.LogWarning($"<color=orange>[LandPlot]</color> Không đủ <b>'{itemID}'</b> tiêu hao để chăm sóc cây!");
+            }
+        }
+        else
+        {
+            // Nếu là hàng VĨNH VIỄN (Bình tưới / Cuốc) -> Làm luôn không cần trừ gì cả!
+            ApplyCareEffect(careType, itemID);
+        }
+    }
+
+    private void ApplyCareEffect(CropNeedType careType, string itemID)
+    {
+        currentNeed = CropNeedType.None;
+        if (_cropGrowth != null) 
+        {
+            _cropGrowth.ResolveNeed(careType);
+            if (careType == CropNeedType.Fertilizer) _cropGrowth.ApplyTimeBoost(60f);
+        }
+        Debug.Log($"<color=green>[LandPlot]</color> Đã dùng <b>'{itemID}'</b>. Nhu cầu {careType} đã được giải tỏa.");
     }
 
     public void ClearPlot()
@@ -221,5 +257,19 @@ public class LandPlot : MonoBehaviour
             isOccupied = success;
         }
         else ClearPlot();
+    }
+
+    // ─── THÊM: XỬ LÝ HIGHLIGHT MÀU SẮC KHI DRAG KÉO QUA ───
+    public void SetHighlight(bool active, bool isValid)
+    {
+        if (tileRenderer == null) return;
+        if (!active) 
+        {
+            tileRenderer.color = originalTileColor;
+        }
+        else 
+        {
+            tileRenderer.color = isValid ? new Color(0.7f, 1.0f, 0.7f) : new Color(1.0f, 0.7f, 0.7f);
+        }
     }
 }

@@ -90,22 +90,28 @@ namespace FarmPuzzle.Testing
         {
             if (DataManager.Instance == null)
             {
-                Debug.LogError("[UC1 FAIL] DataManager.Instance == null! DB chưa khởi tạo.");
+                Debug.LogError("[LOG-UI] THẤT BẠI: DataManager.Instance == null! DB chưa sẵn sàng.");
                 return;
             }
 
             string pId = inputPlayerID.text;
             string pName = inputPlayerName.text;
+            
+            Debug.Log($"[LOG-UI] Người dùng bấm nút Login. ID: {pId}, Tên: {pName}");
 
             if (DataManager.Instance.LoginPlayer(pId, pName))
             {
-                Debug.Log($"<color=green>[UC1 PASS]</color> Đăng nhập OK! Player: {pId}");
+                Debug.Log($"<color=green>[LOG-UI] ĐĂNG NHẬP THÀNH CÔNG!</color> Chuyển đổi giao diện sang Control Panel cho {pId}");
                 if (gridManager != null) gridManager.LoadGridState();
                 
                 loginPanel.SetActive(false);
                 controlPanel.SetActive(true);
                 UpdateStatusText();
                 PopulateSeedButtons();
+            }
+            else
+            {
+                Debug.LogError($"[LOG-UI] ĐĂNG NHẬP THẤT BẠI cho ID: {pId}. Kiểm tra lại DataManager.");
             }
         }
 

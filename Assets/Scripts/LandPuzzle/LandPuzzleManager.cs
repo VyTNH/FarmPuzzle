@@ -73,6 +73,43 @@ namespace FarmPuzzle.LandPuzzle
         // PUBLIC API
         // ─────────────────────────────────────────────────────────────────────
 
+        private void BuildExitButton()
+        {
+            if (_puzzlePanel == null) return;
+            Transform existing = _puzzlePanel.transform.Find("Btn_ExitLandPuzzle");
+            if (existing != null) return;
+
+            GameObject btnObj = new GameObject("Btn_ExitLandPuzzle", typeof(RectTransform), typeof(UnityEngine.UI.Image), typeof(UnityEngine.UI.Button));
+            btnObj.transform.SetParent(_puzzlePanel.transform, false);
+            
+            RectTransform rt = btnObj.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(1, 1);
+            rt.anchorMax = new Vector2(1, 1);
+            rt.pivot = new Vector2(1, 1);
+            rt.anchoredPosition = new Vector2(-20, -20);
+            rt.sizeDelta = new Vector2(60, 60);
+
+            var img = btnObj.GetComponent<UnityEngine.UI.Image>();
+            img.color = new Color(0.8f, 0.2f, 0.2f); // Đỏ nhạt
+
+            var btn = btnObj.GetComponent<UnityEngine.UI.Button>();
+            btn.onClick.AddListener(ExitPuzzle);
+
+            GameObject txtObj = new GameObject("Text", typeof(RectTransform), typeof(UnityEngine.UI.Text));
+            txtObj.transform.SetParent(btnObj.transform, false);
+            RectTransform txtRt = txtObj.GetComponent<RectTransform>();
+            txtRt.anchorMin = Vector2.zero; txtRt.anchorMax = Vector2.one;
+            txtRt.offsetMin = Vector2.zero; txtRt.offsetMax = Vector2.zero;
+            
+            var txt = txtObj.GetComponent<UnityEngine.UI.Text>();
+            txt.text = "X";
+            txt.alignment = TextAnchor.MiddleCenter;
+            txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            txt.fontSize = 30;
+            txt.color = Color.white;
+            txt.fontStyle = FontStyle.Bold;
+        }
+
         /// <summary>Gọi trực tiếp (editor test hoặc farm tile click).</summary>
         public void StartPuzzle(LevelData levelData, LandPlot targetTile = null)
         {
@@ -82,7 +119,11 @@ namespace FarmPuzzle.LandPuzzle
             _state = PuzzleState.Playing;
 
             // Hiện puzzle panel
-            if (_puzzlePanel != null) _puzzlePanel.SetActive(true);
+            if (_puzzlePanel != null) 
+            {
+                _puzzlePanel.SetActive(true);
+                BuildExitButton();
+            }
 
             // Init grid
             _gridBoard.InitializeGrid(levelData);
@@ -153,6 +194,16 @@ namespace FarmPuzzle.LandPuzzle
         private void HandleObstacleDestroyed(GridObstacleData data, int amount)
         {
             Debug.Log($"[Puzzle] Obstacle '{data.obstacleName}' destroyed → +{amount} {data.resourceType}");
+            
+            // LƯU NGAY VÀO SQLITE/RAM THÔNG QUA DATAMANAGER
+            if (DataManager.Instance != null)
+            {
+                if (data.resourceType == ResourceType.Gold) 
+                    DataManager.Instance.AddGold(amount);
+                else 
+                    DataManager.Instance.AddItem("item_" + data.resourceType.ToString().ToLower(), amount);
+            }
+
             OnResourceGained?.Invoke(data, amount);
             _scoring?.AddObstacleScore(amount);
         }
@@ -163,6 +214,9 @@ namespace FarmPuzzle.LandPuzzle
             _state = PuzzleState.Win;
 
             Debug.Log("[Puzzle] ✅ WIN! All obstacles cleared.");
+
+            // LƯU NGAY LƯỢNG VẬT PHẨM ĐÃ TRÚNG DO ĐÁNH BLOCK XUỐNG DB
+            if (DataManager.Instance != null) DataManager.Instance.CommitSessionInventory();
 
             // Mở khóa ô đất đã chọn
             _currentTargetTile?.UnlockPlot();

@@ -14,7 +14,7 @@ public class GameSimulatorWindow : EditorWindow
     private string dbPath;
     private Vector2 leftScroll, rightScroll;
 
-    [MenuItem("FarmPuzzle/📱 Giả Lập Hệ Thống Gameplay")]
+    // [MenuItem("FarmPuzzle/📱 Giả Lập Hệ Thống Gameplay")]
     public static void ShowWindow()
     {
         GetWindow<GameSimulatorWindow>("Máy Game Giả Lập", true, typeof(EditorWindow));

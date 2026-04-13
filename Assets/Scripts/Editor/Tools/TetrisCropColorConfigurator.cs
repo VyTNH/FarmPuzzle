@@ -11,7 +11,7 @@ public class TetrisCropColorConfigurator : EditorWindow
     private List<CropDataSO> _allCrops = new List<CropDataSO>();
     private Vector2 _scrollPos;
 
-    [MenuItem("FarmPuzzle/Công cụ / Bản đồ màu Tetris Nông Sản")]
+    // [MenuItem("FarmPuzzle/Công cụ / Bản đồ màu Tetris Nông Sản")]
     public static void ShowWindow()
     {
         GetWindow<TetrisCropColorConfigurator>("Tetris Crop Map");

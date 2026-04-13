@@ -8,7 +8,7 @@ namespace FarmPuzzle.EditorTools
 {
     public class UC1UC2TestSceneGenerator : EditorWindow
     {
-        [MenuItem("FarmPuzzle/3. TẠO PHÒNG RÈN TEST UC1 & UC2 (Clean State)")]
+        // [MenuItem("FarmPuzzle/3. TẠO PHÒNG RÈN TEST UC1 & UC2 (Clean State)")]
         public static void GenerateTestPlayground()
         {
             if (!EditorUtility.DisplayDialog("Xác nhận xé nháp", 

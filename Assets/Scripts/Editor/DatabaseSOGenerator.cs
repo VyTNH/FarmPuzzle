@@ -22,9 +22,10 @@ namespace FarmPuzzle.EditorTools
         private Sprite _manualGrowthStage1;
         private Sprite _manualGrowthStage2;
         private Sprite _manualGrowthStage3;
+        private Sprite _manualProductIcon; // Thêm biến lưu Icon Sản Phẩm
         private int _manualYieldAmount = 1;
 
-        [MenuItem("FarmPuzzle/1. Database SO Generator")]
+        // [MenuItem("FarmPuzzle/1. Database SO Generator")]
         public static void ShowWindow()
         {
             var window = GetWindow<DatabaseSOGenerator>("SO Generator");
@@ -133,6 +134,8 @@ namespace FarmPuzzle.EditorTools
                 
                 _manualSeedIcon = (Sprite)EditorGUILayout.ObjectField("Ảnh Hạt Giống (Kho):", _manualSeedIcon, typeof(Sprite), false);
                 
+                _manualProductIcon = (Sprite)EditorGUILayout.ObjectField("Ảnh Nông Sản (Thu Hoạch):", _manualProductIcon, typeof(Sprite), false);
+                
                 GUILayout.Space(5);
                 GUILayout.Label("Ảnh 3 giai đoạn sinh trưởng khi rắc xuống đất:");
                 _manualGrowthStage1 = (Sprite)EditorGUILayout.ObjectField("Giai đoạn 1 (Mầm):", _manualGrowthStage1, typeof(Sprite), false);
@@ -165,6 +168,7 @@ namespace FarmPuzzle.EditorTools
             _manualGrowthStage1 = null;
             _manualGrowthStage2 = null;
             _manualGrowthStage3 = null;
+            _manualProductIcon = null;
             _manualYieldAmount = 1;
         }
 
@@ -194,8 +198,13 @@ namespace FarmPuzzle.EditorTools
                 newCropSO.productID = cropDB.ProductID;
                 newCropSO.totalTimeToHarvest = cropDB.GrowSeconds;
                 
+                // Truy vấn tên nông sản từ ProductItemModel
+                var productDB = _db.Table<ProductItemModel>().FirstOrDefault(p => p.ProductID == cropDB.ProductID);
+                newCropSO.cropName = productDB != null ? productDB.Name : "Nông Sản Lỗi";
+
                 // Gắn Data từ Giao Diện Tool
                 newCropSO.yieldAmount = _manualYieldAmount;
+                newCropSO.productIcon = _manualProductIcon;
                 newCropSO.growthStages = new Sprite[] { _manualGrowthStage1, _manualGrowthStage2, _manualGrowthStage3 };
 
                 EditorUtility.SetDirty(newCropSO);

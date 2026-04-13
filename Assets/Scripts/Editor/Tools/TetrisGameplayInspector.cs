@@ -5,7 +5,7 @@ public class TetrisGameplayInspector : EditorWindow
 {
     private string simulatedRowsCleared = "1";
 
-    [MenuItem("FarmPuzzle/Công cụ / Tetris Xuất Hàng Inspector")]
+    // [MenuItem("FarmPuzzle/Công cụ / Tetris Xuất Hàng Inspector")]
     public static void ShowWindow()
     {
         GetWindow<TetrisGameplayInspector>("Tetris Inspector");

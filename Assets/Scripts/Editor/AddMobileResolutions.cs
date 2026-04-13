@@ -19,14 +19,15 @@ namespace FarmPuzzle.EditorTools
         {
             var gameViewSizesInstance = GetGroup(sizeGroupType);
             var addCustomSizeMethod = gameViewSizesInstance.GetType().GetMethod("AddCustomSize", BindingFlags.Public | BindingFlags.Instance);
-            var gameViewSizeConstructor = typeof(Editor).Assembly.GetType("UnityEditor.GameViewSize").GetConstructor(new Type[] { typeof(Editor).Assembly.GetType("UnityEditor.GameViewSizeType"), typeof(int), typeof(int), typeof(string) });
+            var gameViewSizeConstructor = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.GameViewSize").GetConstructor(new Type[] { typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.GameViewSizeType"), typeof(int), typeof(int), typeof(string) });
             var newSize = gameViewSizeConstructor.Invoke(new object[] { 1, width, height, text });
+            var addCustomSizeMethod2 = gameViewSizesInstance.GetType().GetMethod("AddCustomSize", BindingFlags.Public | BindingFlags.Instance);
             addCustomSizeMethod.Invoke(gameViewSizesInstance, new object[] { newSize });
         }
 
         static object GetGroup(GameViewSizeGroupType type)
         {
-            var gameViewSizesType = typeof(Editor).Assembly.GetType("UnityEditor.GameViewSizes");
+            var gameViewSizesType = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.GameViewSizes");
             var singleType = typeof(ScriptableSingleton<>).MakeGenericType(gameViewSizesType);
             var instanceProp = singleType.GetProperty("instance");
             var getGroupMethod = gameViewSizesType.GetMethod("GetGroup");

@@ -14,14 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FarmPuzzle.Tetris.TetrisCropMapSO
   mappings:
   - productID: product_01
-    tetrisSprite: {fileID: 0}
-    fallBackColor: {r: 1, g: 1, b: 1, a: 1}
+    tetrisSprite: {fileID: -5661783315169486296, guid: f163724fa706f9845b2073bbe158372c, type: 3}
+    fallBackColor: {r: 1, g: 0.6067698, b: 0, a: 1}
   - productID: product_02
-    tetrisSprite: {fileID: 0}
-    fallBackColor: {r: 1, g: 1, b: 1, a: 1}
+    tetrisSprite: {fileID: -5859083586626064994, guid: c9e8cf48cd0546c4d956db82159d46e8, type: 3}
+    fallBackColor: {r: 1, g: 0.34109795, b: 0, a: 1}
   - productID: product_03
-    tetrisSprite: {fileID: 0}
-    fallBackColor: {r: 1, g: 1, b: 1, a: 1}
+    tetrisSprite: {fileID: 2223489851949879710, guid: 72883190b67b2c246b6565ea49f66406, type: 3}
+    fallBackColor: {r: 0.2027123, g: 1, b: 0, a: 1}
   - productID: product_04
-    tetrisSprite: {fileID: 0}
-    fallBackColor: {r: 1, g: 1, b: 1, a: 1}
+    tetrisSprite: {fileID: 21300000, guid: 878441973089d3d4ea7c6569cd3edaa1, type: 3}
+    fallBackColor: {r: 1, g: 0, b: 0, a: 1}

@@ -6,7 +6,7 @@ using FarmPuzzle.Testing;
 
 public class SandboxUICreator : Editor
 {
-    [MenuItem("FarmPuzzle/Tạo UI Sandbox (Canvas)", false, 10)]
+    // [MenuItem("FarmPuzzle/Tạo UI Sandbox (Canvas)", false, 10)]
     public static void CreateSandboxUI()
     {
         // Xóa cũ

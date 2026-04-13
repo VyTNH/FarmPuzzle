@@ -23,7 +23,7 @@ namespace FarmPuzzle.EditorTools
         private string _editObsID;
         private string _lastTileID;
 
-        [MenuItem("FarmPuzzle/4. Quản Lý Ô Đất (FARM_TILE Inspector)")]
+        // [MenuItem("FarmPuzzle/4. Quản Lý Ô Đất (FARM_TILE Inspector)")]
         public static void ShowWindow()
         {
             var window = GetWindow<FarmTileInspector>("FARM_TILE Inspector");
