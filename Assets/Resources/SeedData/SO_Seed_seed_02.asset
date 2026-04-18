@@ -14,6 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SeedItemSO
   seedID: seed_02
   seedName: "H\u1EA1t Gi\u1ED1ng Carrot"
-  inventoryIcon: {fileID: 2223489851949879710, guid: 72883190b67b2c246b6565ea49f66406, type: 3}
+  inventoryIcon: {fileID: -5859083586626064994, guid: c9e8cf48cd0546c4d956db82159d46e8, type: 3}
   buyPrice: 20
   cropData: {fileID: 11400000, guid: b107582fa8095774185d52303d2c8560, type: 2}
