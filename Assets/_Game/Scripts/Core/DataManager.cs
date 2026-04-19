@@ -146,15 +146,21 @@ public class DataManager : MonoBehaviour
     /// <summary>Tạo các FARM_TILE mới cho player theo cấu hình GRID_W x GRID_H.</summary>
     private void CreateFarmTiles(string userID)
     {
+        int midX = GRID_W / 2;
+        int midY = GRID_H / 2;
+
         for (int x = 0; x < GRID_W; x++)
         {
             for (int y = 0; y < GRID_H; y++)
             {
                 bool isEdge = (x == 0 || x == GRID_W - 1 || y == 0 || y == GRID_H - 1);
+                // Mặc định khóa (0). Mở khoá (1) cho 4 ô ở trung tâm (2x2)
+                bool isCenter4 = (x == midX || x == midX - 1) && (y == midY || y == midY - 1);
+
                 DB.Insert(new FarmTileModel {
                     TileID         = $"tile_{userID}_{x}_{y}",
                     PlayerID       = userID,
-                    State          = isEdge ? 0 : 1,
+                    State          = isCenter4 ? 1 : 0,
                     PlantedSeedID  = "",
                     PlantTimeTicks = 0,
                     HasObstacle    = isEdge,
@@ -178,9 +184,11 @@ public class DataManager : MonoBehaviour
         DB.Insert(newPlayer);
         Debug.Log($"- Đã tạo dòng mới trong bảng PLAYER: {userName} | 💰 khởi tạo: 500G");
 
-        // 2. Tặng Vũ Khí & Hạt giống đầu tay (Bảng Inventory)
-        DB.Insert(new InventoryModel { PlayerID = userID, ItemID = "seed_01",        Quantity = 5  });  // Khoai Tây
-        DB.Insert(new InventoryModel { PlayerID = userID, ItemID = "seed_02",        Quantity = 5  });  // Cà rốt
+        // 2. Tặng Vũ Khí, Hạt giống & Nông sản đầu tay (Bảng Inventory)
+        DB.Insert(new InventoryModel { PlayerID = userID, ItemID = "seed_01",        Quantity = 5  });  // Khoai Tây (Hạt)
+        DB.Insert(new InventoryModel { PlayerID = userID, ItemID = "seed_02",        Quantity = 5  });  // Cà rốt (Hạt)
+        DB.Insert(new InventoryModel { PlayerID = userID, ItemID = "product_01",     Quantity = 20 });  // Nông sản Khoai để chơi Tetris
+        DB.Insert(new InventoryModel { PlayerID = userID, ItemID = "product_02",     Quantity = 20 });  // Nông sản Cà Rốt để chơi Tetris
         DB.Insert(new InventoryModel { PlayerID = userID, ItemID = "tool_hoe",       Quantity = 1  });
         DB.Insert(new InventoryModel { PlayerID = userID, ItemID = "tool_watercan",  Quantity = 1  });
         DB.Insert(new InventoryModel { PlayerID = userID, ItemID = "tool_pest",      Quantity = 3  });

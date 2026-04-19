@@ -51,21 +51,6 @@ Dưới đây là bảng thống kê sơ bộ số lượng ảnh cần thiết 
 | **Hệ thống (System)** | UI Icons | ~15 | Nút Settings, Inventory, Progress Bar, Gold/Gem. |
 | **Nông cụ (Tools)** | Tool Icons | 5 | Cuốc, Bình tưới, Thuốc sâu, Phân bón, Găng tay. |
 
----
-
-## 📐 Thông số Transform Khuyến nghị
-
-Để game trông nhất quán, Tech-Art nên tuân thủ các thông số sau:
-
-- **Crops (World Space):**
-  - **Scale:** Thường là (1, 1, 1) nếu sprite là 32x32. Nếu sprite 64x64, để Scale (0.5, 0.5, 0.5).
-  - **Pivot:** Luôn để ở **Bottom** (Chân) để cây mọc từ mặt đất lên.
-
-- **UI Icons (Screen Space):**
-  - **Inventory Icon Scale:** (1, 1, 1).
-  - **OffsetMin/Max:** Luôn giữ Padding khoảng 5-10 pixel so với khung Slot để tránh bị đè lên viền.
-
----
 
 ## 🆘 Troubleshooting
 - **Lỗi Missing Sprite:** Nếu thấy ô màu trắng/hồng, hãy kiểm tra lại ScriptableObject xem đã kéo Sprite vào chưa.

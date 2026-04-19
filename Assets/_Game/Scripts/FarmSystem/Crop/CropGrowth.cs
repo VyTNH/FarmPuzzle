@@ -14,7 +14,8 @@ namespace FarmPuzzle.FarmSystem.Crop
     {
         [Header("UI References")]
         public Slider progressSlider;
-        public Image  needIcon;
+        public Image  needIconUI; // Dành cho ai dùng Canvas cũ
+        public SpriteRenderer needIconSprite; // ƯU TIÊN SỬ DỤNG CHO PIXEL GAME!
         public GameObject harvestIcon;    // Hiện lên khi chín
         public Text   timerText;
 
@@ -29,7 +30,7 @@ namespace FarmPuzzle.FarmSystem.Crop
         
         private CropNeedType  _currentNeed = CropNeedType.None;
         private bool          _isHarvestable = false;
-        private float         _bonusSeconds = 0f; // 🚀 Thời gian đã được "buff"
+        private float         _bonusSeconds = 0f; 
 
         public bool IsHarvestable => _isHarvestable && _currentNeed == CropNeedType.None; 
         public CropNeedType CurrentNeed => _currentNeed;
@@ -41,7 +42,8 @@ namespace FarmPuzzle.FarmSystem.Crop
             _totalGrowthSeconds = data.GrowSeconds; 
             _bonusSeconds = 0f;
 
-            if (needIcon != null) needIcon.gameObject.SetActive(false);
+            if (needIconUI != null) needIconUI.gameObject.SetActive(false);
+            if (needIconSprite != null) needIconSprite.gameObject.SetActive(false);
             if (harvestIcon != null) harvestIcon.gameObject.SetActive(false);
             
             UpdateGrowth();
@@ -55,7 +57,6 @@ namespace FarmPuzzle.FarmSystem.Crop
 
         private void UpdateGrowth()
         {
-            // 🎯 TIẾN ĐỘ = (Thời gian đã trôi qua + Thời gian được buff) / Tổng thời gian
             double actualElapsed = (DateTime.UtcNow - _plantedTime).TotalSeconds;
             float progress = Mathf.Clamp01((float)(actualElapsed + _bonusSeconds) / _totalGrowthSeconds);
 
@@ -84,13 +85,11 @@ namespace FarmPuzzle.FarmSystem.Crop
         public void ApplyTimeBoost(float seconds)
         {
             _bonusSeconds += seconds;
-            Debug.Log($"[LOG-CROP] Đã bón phân! Giảm {seconds}s. Tổng bonus: {_bonusSeconds}s");
             UpdateGrowth();
         }
 
         private void CheckForNeeds(float progress)
         {
-            // Chỉ hiện nhu cầu nếu chưa có nhu cầu nào đang chờ xử lý
             if (_currentNeed != CropNeedType.None) return;
 
             if (progress > 0.4f && progress < 0.5f) ShowNeed(CropNeedType.Water);
@@ -100,16 +99,30 @@ namespace FarmPuzzle.FarmSystem.Crop
         public void ShowNeed(CropNeedType type)
         {
             _currentNeed = type;
-            if (needIcon == null) return;
-
-            needIcon.gameObject.SetActive(true);
-            switch (type)
+            
+            if (needIconUI != null) 
             {
-                case CropNeedType.Water:      needIcon.sprite = waterIconSprite; break;
-                case CropNeedType.Pest:       needIcon.sprite = pestIconSprite; break;
-                case CropNeedType.Fertilizer: needIcon.sprite = fertilizerIconSprite; break;
+                needIconUI.gameObject.SetActive(true);
+                switch (type)
+                {
+                    case CropNeedType.Water:      needIconUI.sprite = waterIconSprite; break;
+                    case CropNeedType.Pest:       needIconUI.sprite = pestIconSprite; break;
+                    case CropNeedType.Fertilizer: needIconUI.sprite = fertilizerIconSprite; break;
+                }
             }
-            UpdateHarvestVisual(); // Ẩn cái icon thu hoạch đi cho đến khi chăm sóc xong!
+
+            if (needIconSprite != null)
+            {
+                needIconSprite.gameObject.SetActive(true);
+                switch (type)
+                {
+                    case CropNeedType.Water:      needIconSprite.sprite = waterIconSprite; break;
+                    case CropNeedType.Pest:       needIconSprite.sprite = pestIconSprite; break;
+                    case CropNeedType.Fertilizer: needIconSprite.sprite = fertilizerIconSprite; break;
+                }
+            }
+            
+            UpdateHarvestVisual(); 
         }
 
         public void ResolveNeed(CropNeedType toolType)
@@ -117,7 +130,8 @@ namespace FarmPuzzle.FarmSystem.Crop
             if (toolType == _currentNeed)
             {
                 _currentNeed = CropNeedType.None;
-                if (needIcon != null) needIcon.gameObject.SetActive(false);
+                if (needIconUI != null) needIconUI.gameObject.SetActive(false);
+                if (needIconSprite != null) needIconSprite.gameObject.SetActive(false);
                 UpdateHarvestVisual(); 
             }
         }

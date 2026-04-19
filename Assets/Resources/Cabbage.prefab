@@ -224,7 +224,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 50, y: 51.253}
+  m_AnchoredPosition: {x: 50, y: 51.25244}
   m_SizeDelta: {x: 20, y: 17.505}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5828614198185331894
@@ -294,7 +294,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 0.75, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5453876917816486104}
@@ -387,7 +387,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FarmPuzzle.FarmSystem.Crop.CropGrowth
   progressSlider: {fileID: 2770540170695710875}
-  needIcon: {fileID: 7946222646960723923}
+  needIconUI: {fileID: 0}
+  needIconSprite: {fileID: 0}
   harvestIcon: {fileID: 1727104455453062, guid: f5ec2c1b3ff4abb4dbe867f5c4665aa3, type: 3}
   timerText: {fileID: 5325892551200742229}
   waterIconSprite: {fileID: -1153071719341485273, guid: 25520cb5ea036d848a5cfcecf599a380, type: 3}
@@ -508,12 +509,12 @@ RectTransform:
   m_GameObject: {fileID: 7980549252691340343}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.01, y: 0.01, z: 0.01}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 0.005, y: 0.005, z: 0.005}
+  m_ConstrainProportionsScale: 1
   m_Children:
+  - {fileID: 7708867143625936171}
   - {fileID: 7104924627500672777}
   - {fileID: 4485833695077374155}
-  - {fileID: 7708867143625936171}
   - {fileID: 9215804491929765412}
   m_Father: {fileID: 7042916879524267491}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

@@ -56,11 +56,11 @@ namespace FarmPuzzle.UI
                 _rectTransform.localPosition = localPointerPosition;
             }
 
-            // Highlight logic
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            RaycastHit2D hit = Physics2D.Raycast(ray.origin, ray.direction);
+            // Highlight logic (Sử dụng WorldPoint chuẩn 2D)
+            Vector2 worldPos = Camera.main.ScreenToWorldPoint(eventData.position);
+            RaycastHit2D hit = Physics2D.Raycast(worldPos, Vector2.zero);
             
-            LandPlot currentPlot = hit.collider != null ? hit.collider.GetComponent<LandPlot>() : null;
+            LandPlot currentPlot = hit.collider != null ? hit.collider.GetComponentInParent<LandPlot>() : null;
             if (currentPlot != _lastHighlightedPlot)
             {
                 if (_lastHighlightedPlot != null) _lastHighlightedPlot.SetHighlight(false, false);
@@ -71,10 +71,9 @@ namespace FarmPuzzle.UI
             {
                 bool isValid = false;
                 if (isHarvestTool) {
-                    // Tool Cuốc sáng lên khi Đất Trồng Chờ Thu Hoạch HOẶC Đất Rừng Đang Khóa
                     isValid = _lastHighlightedPlot.CanHarvest() || _lastHighlightedPlot.isLocked;
                 }
-                else if (toolType != CropNeedType.None) isValid = _lastHighlightedPlot.isOccupied && !isHarvestTool;
+                else if (toolType != CropNeedType.None) isValid = _lastHighlightedPlot.isOccupied;
                 else if (seedData != null) isValid = !_lastHighlightedPlot.isOccupied && !_lastHighlightedPlot.isLocked;
                 
                 _lastHighlightedPlot.SetHighlight(true, isValid);
@@ -98,79 +97,88 @@ namespace FarmPuzzle.UI
             // MỞ: Mở khóa Camera
             if (CameraDrag.Instance != null) CameraDrag.IsLockedByTool = false;
 
-            // Bắn tia Raycast xuống World 2D để tìm ô đất DƯỚI ngón tay
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            RaycastHit2D hit = Physics2D.Raycast(ray.origin, ray.direction);
+            // Bắn tia Raycast chuẩn 2D
+            Vector2 worldPos = Camera.main.ScreenToWorldPoint(eventData.position);
+            RaycastHit2D hit = Physics2D.Raycast(worldPos, Vector2.zero);
 
             if (hit.collider != null)
             {
-                LandPlot clickedPlot = hit.collider.GetComponent<LandPlot>();
+                LandPlot clickedPlot = hit.collider.GetComponentInParent<LandPlot>();
                 if (clickedPlot != null)
                 {
                     if (isHarvestTool)
                     {
-                        // Kéo thả Tool Cuốc
+                        // 1. Tool Cuốc/Liềm
                         if (clickedPlot.isLocked)
                         {
-                            // 1. MỞ KHÓA ĐẤT (PUZZLE)
-                            Debug.Log($"<color=cyan>[DraggableTool]</color> Cuốc được thả lên {clickedPlot.plotID} để MỞ RỪNG");
-                            
-                            // Kiểm tra Skip Popup (Dont Ask Me Again)
-                            int skipPopup = PlayerPrefs.GetInt("SkipUnlockConfirm", 0);
-                            var popup = Object.FindFirstObjectByType<FarmPuzzle.LandPuzzle.UI.LandPuzzlePopupController>();
-                            
-                            if (skipPopup == 1 && FarmPuzzle.LandPuzzle.EnergySystem.Instance != null && FarmPuzzle.LandPuzzle.EnergySystem.Instance.HasEnergy)
-                            {
-                                // Chơi ngay và luôn
-                                FarmPuzzle.LandPuzzle.EnergySystem.Instance.ConsumeEnergy(1);
-                                var pm = Object.FindFirstObjectByType<FarmPuzzle.LandPuzzle.LandPuzzleManager>();
-                                if (pm != null && clickedPlot.puzzleLevel != null) pm.StartPuzzle(clickedPlot.puzzleLevel, clickedPlot);
-                            }
-                            else
-                            {
-                                // Hiện Popup
-                                if (popup != null) popup.ShowConfirmPopup(clickedPlot);
-                            }
+                            Debug.Log($"<color=cyan>[DraggableTool]</color> Cuốc thả trúng {clickedPlot.plotID} -> Mở Rừng");
+                            HandleUnlockForest(clickedPlot);
                         }
                         else if (clickedPlot.CanHarvest())
                         {
-                            // 2. THU HOẠCH NÔNG SẢN
-                            Debug.Log($"<color=cyan>[DraggableTool]</color> Thu hoạch ô {clickedPlot.plotID}");
+                            Debug.Log($"<color=green>[DraggableTool]</color> Thu hoạch THÀNH CÔNG ô {clickedPlot.plotID}");
                             clickedPlot.Harvest();
                             if (GridManager.Instance != null) GridManager.Instance.SavePlotState(clickedPlot);
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"<color=orange>[DraggableTool]</color> KHÔNG THỂ THU HOẠCH {clickedPlot.plotID}. Kiểm tra chín hay chưa/có sâu không?");
                         }
                     }
                     else if (toolType != CropNeedType.None)
                     {
-                        // Kéo thả Tool chăm sóc
+                        // 2. Tool chăm sóc
                         if (clickedPlot.isOccupied)
                         {
-                            Debug.Log($"<color=cyan>[DraggableTool]</color> Thả công cụ {toolType} lên ô {clickedPlot.plotID}");
+                            Debug.Log($"<color=cyan>[DraggableTool]</color> Dùng {toolType} lên {clickedPlot.plotID}");
                             clickedPlot.ApplyCare(toolType);
                             if (GridManager.Instance != null) GridManager.Instance.SavePlotState(clickedPlot);
                         }
                     }
                     else if (seedData != null)
                     {
-                        // Kéo thả Hạt giống
+                        // 3. Hạt giống
                         if (!clickedPlot.isOccupied && !clickedPlot.isLocked)
                         {
                             if (GridManager.Instance != null) GridManager.Instance.selectedSeed = seedData;
                             bool hasItem = DataManager.Instance != null && DataManager.Instance.RemoveItem(seedData.seedID, 1);
+                            
+                            // Hack nạp đạn cho sếp test
                             if (!hasItem) {
-                                Debug.LogWarning($"<color=orange>[DraggableTool]</color> Tự động nạp đạn (Hack) {seedData.seedName}");
                                 if (DataManager.Instance != null) DataManager.Instance.AddItem(seedData.seedID, 1);
                                 hasItem = true;
                             }
                             
                             if (hasItem && clickedPlot.Plant(seedData))
                             {
-                                if (GridManager.Instance != null) GridManager.Instance.SavePlotState(clickedPlot);
                                 Debug.Log($"<color=green>[DraggableTool]</color> Gieo thành công {seedData.seedName}");
+                                if (GridManager.Instance != null) GridManager.Instance.SavePlotState(clickedPlot);
                             }
                         }
                     }
                 }
+                else
+                {
+                    Debug.LogWarning($"<color=white>[DraggableTool]</color> Thả hụt trúng {hit.collider.name}");
+                }
+            }
+        }
+
+        private void HandleUnlockForest(LandPlot clickedPlot)
+        {
+            int skipPopup = PlayerPrefs.GetInt("SkipUnlockConfirm", 0);
+            var popup = Object.FindFirstObjectByType<FarmPuzzle.LandPuzzle.UI.LandPuzzlePopupController>();
+            
+            if (skipPopup == 1 && FarmPuzzle.LandPuzzle.EnergySystem.Instance != null && FarmPuzzle.LandPuzzle.EnergySystem.Instance.HasEnergy)
+            {
+                FarmPuzzle.LandPuzzle.EnergySystem.Instance.ConsumeEnergy(1);
+                var pm = Object.FindFirstObjectByType<FarmPuzzle.LandPuzzle.LandPuzzleManager>();
+                if (pm != null && clickedPlot.puzzleLevel != null) pm.StartPuzzle(clickedPlot.puzzleLevel, clickedPlot);
+            }
+            else
+            {
+                if (popup != null) popup.ShowConfirmPopup(clickedPlot);
+                else Debug.LogError("Không tìm thấy LandPuzzlePopupController trong Scene!");
             }
         }
     }
