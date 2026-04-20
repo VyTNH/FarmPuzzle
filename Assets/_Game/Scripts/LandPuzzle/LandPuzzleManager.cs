@@ -18,13 +18,6 @@ namespace FarmPuzzle.LandPuzzle
 
     /// <summary>
     /// Quản lý toàn bộ luồng chơi Block Puzzle.
-    ///
-    /// FLOW MỚI:
-    /// 1. FarmLandTile bị click → gọi StartPuzzle(levelData, targetTile)
-    /// 2. Người chơi kéo block vào grid
-    /// 3. Khi xóa hàng/cột → damage obstacles lân cận → cho tài nguyên
-    /// 4. Tất cả obstacles phá hết → WIN → tileTarget.Unlock()
-    /// 5. Hết nước đi → GAME OVER (ô đất vẫn bị khóa)
     /// </summary>
     public class LandPuzzleManager : MonoBehaviour
     {
@@ -49,10 +42,7 @@ namespace FarmPuzzle.LandPuzzle
         public PuzzleState CurrentState => _state;
         public int         CurrentScore => _scoring != null ? _scoring.CurrentScore : 0;
         
-        // MỚI: Kiểm tra xem sếp có đang bận giải đố không
         public bool IsPuzzleActive => _state != PuzzleState.Idle;
-
-        // ─────────────────────────────────────────────────────────────────────
 
         private void Awake()
         {
@@ -64,14 +54,9 @@ namespace FarmPuzzle.LandPuzzle
 
         private void Start()
         {
-            // Subscribe energy
             if (EnergySystem.Instance != null)
                 EnergySystem.Instance.OnEnergyChanged += (cur, max) => OnEnergyChanged?.Invoke(cur, max);
         }
-
-        // ─────────────────────────────────────────────────────────────────────
-        // PUBLIC API
-        // ─────────────────────────────────────────────────────────────────────
 
         private void BuildExitButton()
         {
@@ -90,7 +75,7 @@ namespace FarmPuzzle.LandPuzzle
             rt.sizeDelta = new Vector2(60, 60);
 
             var img = btnObj.GetComponent<UnityEngine.UI.Image>();
-            img.color = new Color(0.8f, 0.2f, 0.2f); // Đỏ nhạt
+            img.color = new Color(0.8f, 0.2f, 0.2f); 
 
             var btn = btnObj.GetComponent<UnityEngine.UI.Button>();
             btn.onClick.AddListener(ExitPuzzle);
@@ -115,23 +100,26 @@ namespace FarmPuzzle.LandPuzzle
         {
             if (_state == PuzzleState.Playing) return;
 
+            // MỚI: Reset Zoom camera về 0 (MaxZoom) khi vào game puzzle
+            if (CameraDrag.Instance != null)
+            {
+                CameraDrag.Instance.ResetZoom();
+            }
+
             _currentTargetTile = targetTile;
             _state = PuzzleState.Playing;
 
-            // Hiện puzzle panel
             if (_puzzlePanel != null) 
             {
                 _puzzlePanel.SetActive(true);
                 BuildExitButton();
             }
 
-            // Init grid
             _gridBoard.InitializeGrid(levelData);
             _gridBoard.OnLinesCleared       += HandleLinesCleared;
             _gridBoard.OnObstacleDestroyed  += HandleObstacleDestroyed;
             _gridBoard.OnAllObstaclesDestroyed += HandleAllObstaclesDestroyed;
 
-            // Init spawner
             _blockSpawner.Initialize(levelData, _gridBoard);
             _blockSpawner.OnBatchExhausted += HandleBatchExhausted;
             _blockSpawner.OnBlockPlaced    += HandleBlockPlaced;
@@ -139,12 +127,9 @@ namespace FarmPuzzle.LandPuzzle
 
             _scoring?.ResetScore();
 
-            // 🚀 TELEPORT BÀN CỜ ĐẾN VỊ TRÍ CAMERA HIỆN TẠI ĐỂ LUÔN CĂN GIỮA MÀN HÌNH!
             if (Camera.main != null)
             {
                 var camPos = Camera.main.transform.position;
-                // Nhờ thiết kế GridBoard chuẩn xác (đã chia trung bình offset), 
-                // ta chỉ việc ốp thẳng X, Y của Root vào Camera là lưới sẽ cân bằng tuyệt đối!
                 transform.position = new Vector3(camPos.x, camPos.y, transform.position.z);
             }
 
@@ -153,7 +138,6 @@ namespace FarmPuzzle.LandPuzzle
 
         public void RetryPuzzle()
         {
-            // TODO: retry với cùng level
         }
 
         public void ExitPuzzle()
@@ -163,14 +147,11 @@ namespace FarmPuzzle.LandPuzzle
             _state = PuzzleState.Idle;
         }
 
-        // ── GAME EVENTS ──
-
         private void HandleBlockPlaced(ShapeData shape, Vector2Int anchor)
         {
             if (_state != PuzzleState.Playing) return;
             _scoring?.AddPlacementScore(shape.GetActiveCellCount());
 
-            // Kiểm tra và xóa hàng/cột hoàn chỉnh ngay sau khi đặt block
             int linesCleared = _gridBoard.CheckAndClearLines();
             if (linesCleared > 0)
             {
@@ -182,7 +163,6 @@ namespace FarmPuzzle.LandPuzzle
         {
             if (_state != PuzzleState.Playing) return;
 
-            // Kiểm tra game over (nếu vẫn còn obstacle chưa chết = chưa win)
             if (_gridBoard.HasObstaclesRemaining)
             {
                 _blockSpawner.SpawnNewBatch();
@@ -204,7 +184,6 @@ namespace FarmPuzzle.LandPuzzle
         {
             Debug.Log($"[Puzzle] Obstacle '{data.obstacleName}' destroyed → +{amount} {data.resourceType}");
             
-            // LƯU NGAY VÀO SQLITE/RAM THÔNG QUA DATAMANAGER
             if (DataManager.Instance != null)
             {
                 if (data.resourceType == ResourceType.Gold) 
@@ -224,24 +203,16 @@ namespace FarmPuzzle.LandPuzzle
 
             Debug.Log("<color=green>[Giai Đoạn 3: Check Win Condition]</color> TẤT CẢ Chướng ngại vật trên Bàn Cờ đã bị dọn sạch! Kích hoạt Luồng Chiến thắng!");
 
-            // LƯU NGAY LƯỢNG VẬT PHẨM ĐÃ TRÚNG DO ĐÁNH BLOCK XUỐNG DB
             if (DataManager.Instance != null) DataManager.Instance.CommitSessionInventory();
 
-            // Mở khóa ô đất đã chọn
             if (_currentTargetTile != null) 
             {
                 _currentTargetTile.UnlockPlot();
                 
-                // MỚI: Update Cập Nhập DB & Đồ Họa Của GridManager!
                 if (FarmPuzzle.FarmSystem.GridManager.Instance != null) 
                 {
-                    // Lấy random 1 ô Đất Trồng (Từ index 6 dến 11)
                     int dirtTileIndex = UnityEngine.Random.Range(6, 12);
-                    
-                    // Lệnh 1: Thúc GridManager Vẽ Lớp Đất Mới Che Đi Lớp Cỏ Cũ
                     FarmPuzzle.FarmSystem.GridManager.Instance.ChangeTileArtState(_currentTargetTile, dirtTileIndex);
-                    
-                    // Lệnh 2: Thúc GridManager Đẩy Thông Tin (IsLocked=false) xuống SQLite
                     FarmPuzzle.FarmSystem.GridManager.Instance.SavePlotState(_currentTargetTile);
                     
                     Debug.Log($"<color=magenta>[Giai Đoạn 4: Lưu KQ & Cập nhật Graphic]</color> Ghi Đè Database: Đất {_currentTargetTile.plotID} ĐÃ MỞ KHÓA -> Vẽ Lại Graphic Thành Đất Trồng!");
@@ -250,8 +221,6 @@ namespace FarmPuzzle.LandPuzzle
 
             OnPuzzleWin?.Invoke();
             CleanUpPuzzle();
- 
-            // Ẩn TOÀN BỘ hệ thống puzzle (Board, Spawner, UI)
             HideEntirePuzzleSystem();
         }
 
@@ -262,21 +231,11 @@ namespace FarmPuzzle.LandPuzzle
             OnPuzzleGameOver?.Invoke();
         }
 
-        /// <summary>
-        /// Ẩn toàn bộ hệ thống Puzzle (Bao gồm cả Bàn cờ, UI, và nền tối).
-        /// </summary>
         private void HideEntirePuzzleSystem()
         {
-            // Tắt cái Panel UI
             if (_puzzlePanel != null) _puzzlePanel.SetActive(false);
-
-            // Tắt luôn cái Bàn cờ và Spawner (nếu chúng nó không nằm trong Panel)
             if (_gridBoard != null) _gridBoard.gameObject.SetActive(false);
             if (_blockSpawner != null) _blockSpawner.gameObject.SetActive(false);
-
-            // Nếu sếp có cái Background tối (thường là parent của hệ thống)
-            // Em sẽ tắt luôn cái object chứa cái script này (thường là Parent Puzzle System)
-            // gameObject.SetActive(false); // Cẩn thận: Nếu script này nằm trên Core thì không được tắt
             
             _state = PuzzleState.Idle;
             Debug.Log("<color=cyan>[Puzzle]</color> Đã dọn dẹp và ẩn toàn bộ hệ thống. Quay lại Farm!");

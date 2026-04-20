@@ -17,6 +17,7 @@ namespace FarmPuzzle.UI
     {
         [Header("Energy Bar")]
         public Text energyText;
+        public Text energyTimerText; // Mới: Hiển thị đếm ngược (01:45)
         public Slider energySlider;
 
         [Header("Gold & EXP")]
@@ -35,10 +36,15 @@ namespace FarmPuzzle.UI
         private void OnEnable()
         {
             DataManager.OnPlayerLoggedIn         += Refresh;
-            // OnInventoryChanged là Action<string, int> — cần lambda để khớp
             DataManager.OnInventoryChanged       += OnInventoryChangedHandler;
             DataManager.OnInventoryItemAdded     += OnInventoryChangedHandler;
             QuestManager.OnProgressUpdated       += RefreshQuest;
+
+            // MỚI: Đăng ký lắng nghe sự kiện thay đổi năng lượng để cập nhật UI ngay lập tức
+            if (EnergySystem.Instance != null)
+            {
+                EnergySystem.Instance.OnEnergyChanged += UpdateEnergyUI;
+            }
         }
 
         private void OnDisable()
@@ -47,15 +53,47 @@ namespace FarmPuzzle.UI
             DataManager.OnInventoryChanged       -= OnInventoryChangedHandler;
             DataManager.OnInventoryItemAdded     -= OnInventoryChangedHandler;
             QuestManager.OnProgressUpdated       -= RefreshQuest;
+
+            if (EnergySystem.Instance != null)
+            {
+                EnergySystem.Instance.OnEnergyChanged -= UpdateEnergyUI;
+            }
         }
 
-        // Adapter: chuyển Action<string,int> thành gọi RefreshGold()
         private void OnInventoryChangedHandler(string itemID, int qty) => RefreshGold();
 
         private void Start()
         {
             Refresh();
             RefreshQuest();
+        }
+
+        private void Update()
+        {
+            UpdateEnergyTimer();
+        }
+
+        private void UpdateEnergyUI(int current, int max)
+        {
+            RefreshEnergy();
+        }
+
+        private void UpdateEnergyTimer()
+        {
+            var es = EnergySystem.Instance;
+            if (es == null || energyTimerText == null) return;
+
+            if (es.CurrentEnergy >= es.MaxEnergy)
+            {
+                energyTimerText.text = ""; // Đầy thì ẩn
+            }
+            else
+            {
+                float time = es.TimeToNextRegen;
+                int minutes = Mathf.FloorToInt(time / 60);
+                int seconds = Mathf.FloorToInt(time % 60);
+                energyTimerText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
+            }
         }
 
         public void Refresh()
@@ -86,11 +124,9 @@ namespace FarmPuzzle.UI
             if (DataManager.Instance == null || DataManager.Instance.CurrentPlayer == null) return;
             var player = DataManager.Instance.CurrentPlayer;
 
-            // Money là đồng vàng
             if (goldText != null)
                 goldText.text = $"🪙 {player.Money:N0}";
 
-            // EXP dùng tạm cho ô Gem cho đến khi model có thêm field
             if (gemText != null)
                 gemText.text = $"⭐ {player.EXP}";
         }
@@ -131,7 +167,6 @@ namespace FarmPuzzle.UI
         public void RefreshPlayerLevel()
         {
             if (DataManager.Instance == null || DataManager.Instance.CurrentPlayer == null) return;
-            // Tạm dùng EXP cho đến khi PlayerModel có thêm Level field
             if (playerLevelText != null)
                 playerLevelText.text = $"EXP: {DataManager.Instance.CurrentPlayer.EXP}";
         }

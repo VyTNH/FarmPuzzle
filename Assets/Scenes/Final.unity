@@ -994,6 +994,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 8b11159643ed5ea4491700036e11d2d2, type: 2}
   - {fileID: 11400000, guid: 61ed8071cf436374caf8fa642abc8cc1, type: 2}
   - {fileID: 11400000, guid: 74baaf2752cc7b142ac6b3da43614adb, type: 2}
+  - {fileID: 11400000, guid: 74baaf2752cc7b142ac6b3da43614adb, type: 2}
+  - {fileID: 11400000, guid: 2fa0abcfc27e38e4db7f9f9b61d7612d, type: 2}
+  - {fileID: 11400000, guid: 759cd5ce9b1aae841914b3b7801e6df8, type: 2}
+  - {fileID: 11400000, guid: 6d9b13d8bf542c1488d2894fe11fbe41, type: 2}
 --- !u!156049354 &168266947
 Grid:
   m_ObjectHideFlags: 0
@@ -1444,6 +1448,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FarmPuzzle.LandPuzzle.EnergySystem
   _maxEnergy: 5
   _currentEnergy: 5
+  _regenDuration: 120
 --- !u!4 &278905248
 Transform:
   m_ObjectHideFlags: 0
@@ -2891,7 +2896,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.12}
   m_AnchorMax: {x: 0.15, y: 0.88}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 85, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &572772809
@@ -3115,6 +3120,10 @@ MonoBehaviour:
   loginPanel: {fileID: 2132554515}
   newPlayerPanel: {fileID: 446138856}
   hudPanel: {fileID: 422998372}
+  decorShopPanel: {fileID: 0}
+  seedShopPanel: {fileID: 0}
+  inventoryPanel: {fileID: 0}
+  farmTopBar: {fileID: 0}
   btnPlayNew: {fileID: 1221965682}
   btnRetrieve: {fileID: 18285079}
   inputPlayerName: {fileID: 1198047918}
@@ -7422,8 +7431,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.85, y: 0.12}
   m_AnchorMax: {x: 1, y: 0.88}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchoredPosition: {x: -83, y: -2.9085083}
+  m_SizeDelta: {x: 0, y: 5.8169}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1412200339
 MonoBehaviour:
@@ -8495,6 +8504,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FarmPuzzle.UI.FarmTopBarUI
   energyText: {fileID: 1027149042}
+  energyTimerText: {fileID: 0}
   energySlider: {fileID: 821806901}
   goldText: {fileID: 1394124503}
   gemText: {fileID: 793760048}

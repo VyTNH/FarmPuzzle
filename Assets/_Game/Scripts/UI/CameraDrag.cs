@@ -6,20 +6,18 @@ public class CameraDrag : MonoBehaviour
 
     // ─── Kéo map ───
     [Header("Giới Hạn Lướt (Clamp Bounds)")]
-    [Tooltip("Tự điền theo kích thước map. Isometric 50x50 ≈ minX=-15 maxX=15 minY=-12 maxY=18")]
-    public float minX = -15f;
-    public float maxX = 15f;
-    public float minY = -12f;
-    public float maxY = 18f;
+    [Tooltip("Tương ứng với bản đồ 50x50 Isometric")]
+    public float minX = -40f;
+    public float maxX = 40f;
+    public float minY = -10f;
+    public float maxY = 45f;
 
     [Header("Độ Nhạy")]
     public float panSpeed = 1f;
 
     [Header("Phân Biệt Kéo / Bấm")]
-    [Tooltip("Khoảng cách pixel tối thiểu để tính là 'đang kéo' — tránh bật popup khi lướt map")]
     public float dragThresholdPixels = 10f;
 
-    // Trạng thái cho GridManager biết để bỏ qua click trong lúc kéo
     public static bool IsDragging { get; private set; }
 
     private Vector3 _dragOriginWorld;
@@ -46,12 +44,10 @@ public class CameraDrag : MonoBehaviour
         if (cam == null) cam = Camera.main;
     }
 
-    // Biến dùng để khóa tay camera khi Kéo thả Nông Cụ / Hạt Giống
     public static bool IsLockedByTool = false;
 
     private void LateUpdate()
     {
-        // --- CHẶN KÉO MAP KHI MỞ CÁC MINIGAME/POPUP HOẶC ĐANG CẦM TOOL ---
         bool isTetris = FarmPuzzle.Tetris.TetrisManager.Instance != null && FarmPuzzle.Tetris.TetrisManager.Instance.isPlaying;
         bool isLand = FarmPuzzle.LandPuzzle.LandPuzzleManager.Instance != null && FarmPuzzle.LandPuzzle.LandPuzzleManager.Instance.IsPuzzleActive;
         
@@ -72,7 +68,6 @@ public class CameraDrag : MonoBehaviour
 
         if (Input.GetMouseButton(0))
         {
-            // Kiểm tra đã kéo quá ngưỡng pixel chưa
             float pixelDelta = Vector2.Distance((Vector2)Input.mousePosition, _mouseDownScreen);
             if (pixelDelta > dragThresholdPixels)
                 IsDragging = true;
@@ -90,7 +85,6 @@ public class CameraDrag : MonoBehaviour
 
         if (Input.GetMouseButtonUp(0))
         {
-            // Reset sau khi nhả chuột (1 frame delay để GridManager bỏ qua GetMouseButtonDown)
             IsDragging = false;
         }
     }
@@ -99,7 +93,6 @@ public class CameraDrag : MonoBehaviour
     {
         if (!cam.orthographic) return;
 
-        // PC: Scroll wheel
         float scroll = Input.GetAxis("Mouse ScrollWheel");
         if (scroll != 0f)
         {
@@ -107,7 +100,6 @@ public class CameraDrag : MonoBehaviour
             cam.orthographicSize = Mathf.Clamp(cam.orthographicSize, minZoom, maxZoom);
         }
 
-        // Mobile: Pinch 2 ngón
         if (Input.touchCount == 2)
         {
             Touch t0 = Input.GetTouch(0);
@@ -119,7 +111,6 @@ public class CameraDrag : MonoBehaviour
         }
     }
 
-    // ─── Gizmo trực quan bounds trong Scene view ───
 #if UNITY_EDITOR
     private void OnDrawGizmosSelected()
     {

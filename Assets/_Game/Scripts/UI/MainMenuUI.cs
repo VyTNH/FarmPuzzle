@@ -14,6 +14,12 @@ namespace FarmPuzzle.UI
         public GameObject loginPanel;      // Nơi chứa 2 nút ban đầu
         public GameObject newPlayerPanel;  // Nơi nhập tên nếu người chơi mới
         public GameObject hudPanel;        // Nơi chứa nút Mở Tetris, v.v. khi đã vào game
+
+        [Header("Global UI (Hidden until Login)")]
+        public GameObject decorShopPanel;
+        public GameObject seedShopPanel;
+        public GameObject inventoryPanel;  // MỚI: Bảng kho đồ ở dưới cùng
+        public GameObject farmTopBar;
         
         [Header("Login Buttons")]
         public Button btnPlayNew;          // Chơi Mới
@@ -36,13 +42,43 @@ namespace FarmPuzzle.UI
             if (btnSubmitNewPlayer != null) btnSubmitNewPlayer.onClick.AddListener(OnSubmitNewPlayerClicked);
             if (btnOpenTetris != null) btnOpenTetris.onClick.AddListener(OpenTetris);
 
+            // Tự động tìm kiếm các bảng nếu Inspector bị trống (NULL)
+            if (decorShopPanel == null) decorShopPanel = GameObject.Find("DecorShopPanel");
+            if (seedShopPanel == null) seedShopPanel = GameObject.Find("SeedShopPanel");
+            if (inventoryPanel == null) inventoryPanel = GameObject.Find("InventoryPanel");
+            if (farmTopBar == null) farmTopBar = GameObject.Find("Canvas_FarmTopBar");
+
+            // Nếu vẫn NULL (do đang bị Deactive), cố gắng tìm sâu hơn
+            if (decorShopPanel == null) decorShopPanel = FindInactiveByName("DecorShopPanel");
+            if (seedShopPanel == null) seedShopPanel = FindInactiveByName("SeedShopPanel");
+            if (inventoryPanel == null) inventoryPanel = FindInactiveByName("InventoryPanel");
+            if (farmTopBar == null) farmTopBar = FindInactiveByName("Canvas_FarmTopBar");
+
+            // Đảm bảo ẩn triệt để lúc khởi đầu
+            if (decorShopPanel != null) decorShopPanel.SetActive(false);
+            if (seedShopPanel != null) seedShopPanel.SetActive(false);
+            if (inventoryPanel != null) inventoryPanel.SetActive(false);
+            if (farmTopBar != null) farmTopBar.SetActive(false);
+
             ShowPanel(loginPanel);
             
-            // Tìm ID gần nhất nếu có
             if (PlayerPrefs.HasKey("FarmPuzzle_LastPlayerID"))
             {
                 _lastUsedID = PlayerPrefs.GetString("FarmPuzzle_LastPlayerID");
             }
+        }
+
+        private GameObject FindInactiveByName(string name)
+        {
+            GameObject[] all = Resources.FindObjectsOfTypeAll<GameObject>();
+            foreach (var go in all)
+            {
+                if (go.name == name && go.transform.parent != null)
+                {
+                    if (!string.IsNullOrEmpty(go.scene.name)) return go;
+                }
+            }
+            return null;
         }
 
         private void ShowPanel(GameObject panel)
@@ -61,16 +97,12 @@ namespace FarmPuzzle.UI
         {
             string pName = inputPlayerName.text.Trim();
             if (string.IsNullOrEmpty(pName)) pName = "Nông Dân Mới";
-
-            // Sinh ID động dựa trên thời gian
             string newID = "player_" + System.DateTime.Now.Ticks.ToString();
-
             Login(newID, pName);
         }
 
         private void OnRetrieveClicked()
         {
-            // Nếu có player cũ lưu trong DB, ta lấy người gần nhất, tạm thời dùng _lastUsedID
             Login(_lastUsedID, "Khách Cũ");
         }
 
@@ -85,9 +117,14 @@ namespace FarmPuzzle.UI
 
                 if (gridManager != null) gridManager.LoadGridState();
                 
+                // HIỆN CÁC BẢNG UI TOÀN CỤC CHỈ KHI LOGIN THÀNH CÔNG
+                if (decorShopPanel != null) decorShopPanel.SetActive(true);
+                if (seedShopPanel != null) seedShopPanel.SetActive(true);
+                if (inventoryPanel != null) inventoryPanel.SetActive(true);
+                if (farmTopBar != null) farmTopBar.SetActive(true);
+
                 ShowPanel(hudPanel);
                 
-                // Đóng luôn SandboxCanvasUI cũ nếu còn tồn tại trong scene
                 var oldSandbox = FindFirstObjectByType<FarmPuzzle.Testing.SandboxCanvasUI>();
                 if (oldSandbox != null) oldSandbox.gameObject.SetActive(false);
             }

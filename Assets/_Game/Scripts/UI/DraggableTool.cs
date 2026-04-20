@@ -29,34 +29,23 @@ namespace FarmPuzzle.UI
 
         public void OnBeginDrag(PointerEventData eventData)
         {
-            if (isHarvestTool) Debug.Log($"<color=cyan>[DraggableTool]</color> Bắt đầu kéo: THU HOẠCH");
-            else if (seedData != null) Debug.Log($"<color=cyan>[DraggableTool]</color> Bắt đầu kéo HẠT: {seedData.seedName}");
-            else Debug.Log($"<color=cyan>[DraggableTool]</color> Bắt đầu kéo CÔNG CỤ: {toolType}");
-
             _startPosition = _rectTransform.anchoredPosition;
             _originalParent = transform.parent;
-            
-            // Đưa object ra khỏi layout để kéo thả không bị vướng
             transform.SetParent(transform.root); 
             transform.SetAsLastSibling();
-
             _canvasGroup.alpha = 0.7f;
-            _canvasGroup.blocksRaycasts = false; // Xuyên thủng UI để tia Raycast lọt xuống Nông trại
-
-            // MỚI: Khóa cứng Camera không cho chạy theo lúc kéo Tool
+            _canvasGroup.blocksRaycasts = false;
             if (CameraDrag.Instance != null) CameraDrag.IsLockedByTool = true;
         }
 
         public void OnDrag(PointerEventData eventData)
         {
-            // Di chuyển icon theo chuột
             if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 (RectTransform)transform.parent, eventData.position, eventData.pressEventCamera, out Vector2 localPointerPosition))
             {
                 _rectTransform.localPosition = localPointerPosition;
             }
 
-            // Highlight logic (Sử dụng WorldPoint chuẩn 2D)
             Vector2 worldPos = Camera.main.ScreenToWorldPoint(eventData.position);
             RaycastHit2D hit = Physics2D.Raycast(worldPos, Vector2.zero);
             
@@ -75,7 +64,6 @@ namespace FarmPuzzle.UI
                 }
                 else if (toolType != CropNeedType.None) isValid = _lastHighlightedPlot.isOccupied;
                 else if (seedData != null) isValid = !_lastHighlightedPlot.isOccupied && !_lastHighlightedPlot.isLocked;
-                
                 _lastHighlightedPlot.SetHighlight(true, isValid);
             }
         }
@@ -88,16 +76,12 @@ namespace FarmPuzzle.UI
                 _lastHighlightedPlot = null;
             }
 
-            // Trả icon về chỗ cũ
             _canvasGroup.alpha = 1f;
             _canvasGroup.blocksRaycasts = true;
             transform.SetParent(_originalParent);
             _rectTransform.anchoredPosition = _startPosition;
-
-            // MỞ: Mở khóa Camera
             if (CameraDrag.Instance != null) CameraDrag.IsLockedByTool = false;
 
-            // Bắn tia Raycast chuẩn 2D
             Vector2 worldPos = Camera.main.ScreenToWorldPoint(eventData.position);
             RaycastHit2D hit = Physics2D.Raycast(worldPos, Vector2.zero);
 
@@ -108,36 +92,27 @@ namespace FarmPuzzle.UI
                 {
                     if (isHarvestTool)
                     {
-                        // 1. Tool Cuốc/Liềm
-                        if (clickedPlot.isLocked)
-                        {
-                            Debug.Log($"<color=cyan>[DraggableTool]</color> Cuốc thả trúng {clickedPlot.plotID} -> Mở Rừng");
-                            HandleUnlockForest(clickedPlot);
-                        }
+                        if (clickedPlot.isLocked) HandleUnlockForest(clickedPlot);
                         else if (clickedPlot.CanHarvest())
                         {
-                            Debug.Log($"<color=green>[DraggableTool]</color> Thu hoạch THÀNH CÔNG ô {clickedPlot.plotID}");
                             clickedPlot.Harvest();
                             if (GridManager.Instance != null) GridManager.Instance.SavePlotState(clickedPlot);
-                        }
-                        else
-                        {
-                            Debug.LogWarning($"<color=orange>[DraggableTool]</color> KHÔNG THỂ THU HOẠCH {clickedPlot.plotID}. Kiểm tra chín hay chưa/có sâu không?");
+                            // MỚI: Commit ngay để lưu nông sản nhặt được vào SQLite
+                            if (DataManager.Instance != null) DataManager.Instance.CommitSessionInventory();
                         }
                     }
                     else if (toolType != CropNeedType.None)
                     {
-                        // 2. Tool chăm sóc
                         if (clickedPlot.isOccupied)
                         {
-                            Debug.Log($"<color=cyan>[DraggableTool]</color> Dùng {toolType} lên {clickedPlot.plotID}");
                             clickedPlot.ApplyCare(toolType);
                             if (GridManager.Instance != null) GridManager.Instance.SavePlotState(clickedPlot);
+                            // Commit nếu là tool tiêu hao (như phân bón)
+                            if (DataManager.Instance != null) DataManager.Instance.CommitSessionInventory();
                         }
                     }
                     else if (seedData != null)
                     {
-                        // 3. Hạt giống
                         if (!clickedPlot.isOccupied && !clickedPlot.isLocked)
                         {
                             if (GridManager.Instance != null) GridManager.Instance.selectedSeed = seedData;
@@ -151,15 +126,13 @@ namespace FarmPuzzle.UI
                             
                             if (hasItem && clickedPlot.Plant(seedData))
                             {
-                                Debug.Log($"<color=green>[DraggableTool]</color> Gieo thành công {seedData.seedName}");
                                 if (GridManager.Instance != null) GridManager.Instance.SavePlotState(clickedPlot);
+                                // CỰC KỲ QUAN TRỌNG: Ghi xuống file DB ngay lập tức để trừ hạt giống vĩnh viễn
+                                if (DataManager.Instance != null) DataManager.Instance.CommitSessionInventory();
+                                Debug.Log($"[DraggableTool] Đã trừ vĩnh viễn 1 {seedData.seedName} vào DB.");
                             }
                         }
                     }
-                }
-                else
-                {
-                    Debug.LogWarning($"<color=white>[DraggableTool]</color> Thả hụt trúng {hit.collider.name}");
                 }
             }
         }
@@ -178,7 +151,6 @@ namespace FarmPuzzle.UI
             else
             {
                 if (popup != null) popup.ShowConfirmPopup(clickedPlot);
-                else Debug.LogError("Không tìm thấy LandPuzzlePopupController trong Scene!");
             }
         }
     }
