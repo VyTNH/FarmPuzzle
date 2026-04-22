@@ -1,0 +1,6 @@
+﻿≡ƒôû [AUTONOMOUS-REPORT] ─Éang tr├¡ch xuß║Ñt nhß║¡t k├╜ Console Unity...
+≡ƒô£ UNITY CONSOLE LOGS:
+event: message
+data: {"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"{\"success\":true,\"message\":\"Retrieved 1 log entries.\",\"data\":[\"error CS2001: Source file 'D:\\\\UnityProjects\\\\farmpuzzle\\\\Library/PackageCache/com.coplaydev.unity-mcp@7f5e253744bb/Runtime/Serialization/UnityTypeConverters.cs' could not be found.\"]}"}],"structuredContent":{"success":true,"message":"Retrieved 1 log entries.","data":["error CS2001: Source file 'D:\\UnityProjects\\farmpuzzle\\Library/PackageCache/com.coplaydev.unity-mcp@7f5e253744bb/Runtime/Serialization/UnityTypeConverters.cs' could not be found."]},"isError":false}}
+
+

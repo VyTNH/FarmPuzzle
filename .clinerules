@@ -1,0 +1,5 @@
+// FarmPuzzle Custom AI Rules
+
+1. Always write code comments in Vietnamese.
+2. Translate all UI-facing string literals, Tooltips, and Debug Logs into Vietnamese by default.
+3. Keep C# class names, variable names, and method names in standard English for Unity code conventions, but ensure their documentation summaries are in Vietnamese.

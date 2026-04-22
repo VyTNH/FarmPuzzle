@@ -1,30 +1,26 @@
 using UnityEngine;
-using UnityEngine.InputSystem; // Namespace cho Input System mới
+
 
 public class AudioTester : MonoBehaviour
 {
     private void Update()
     {
-        // Kiểm tra nếu phím số 1 được nhấn (Sử dụng Keyboard.current)
-        if (Keyboard.current != null)
+        // Kiểm tra nếu phím số 1 được nhấn (Legacy Input)
+        if (Input.GetKeyDown(KeyCode.Alpha1))
         {
-            // Phím số 1
-            if (Keyboard.current.digit1Key.wasPressedThisFrame)
-            {
-                AudioObserver.Instance.PlayBackgroundMusic();
-            }
+            AudioObserver.Instance.PlayBackgroundMusic();
+        }
 
-            // Phím số 2
-            if (Keyboard.current.digit2Key.wasPressedThisFrame)
-            {
-                AudioObserver.Instance.PlayCoinSound();
-            }
+        // Phím số 2
+        if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            AudioObserver.Instance.PlayCoinSound();
+        }
 
-            // Phím số 3
-            if (Keyboard.current.digit3Key.wasPressedThisFrame)
-            {
-                AudioObserver.Instance.PlayWinSound();
-            }
+        // Phím số 3
+        if (Input.GetKeyDown(KeyCode.Alpha3))
+        {
+            AudioObserver.Instance.PlayWinSound();
         }
     }
 
