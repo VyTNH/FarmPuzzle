@@ -1,0 +1,385 @@
+using UnityEngine;
+using UnityEngine.UI;
+using FarmPuzzle.Meta;
+using FarmPuzzle.Core;
+using FarmPuzzle.LandPuzzle;
+using FarmPuzzle.LandPuzzle.Data;
+
+namespace FarmPuzzle.UI
+{
+    /// <summary>
+    /// Kịch bản tự động Bind dữ liệu thực tế cho KHO HÀNG (Canvas_Inventory) và ĐƠN HÀNG (QuestHUD / Panel_Quests)
+    /// </summary>
+    public class UIDataBinder : MonoBehaviour
+    {
+        // ─── TỰ ĐỘNG TÌM COMPONENT SINH RA BẰNG UI BUILDER ───
+        private Text _questContentText;
+        private Transform _inventoryPanel;
+        private Canvas _inventoryCanvas;
+
+        private void Awake()
+        {
+            DontDestroyOnLoad(gameObject);
+        }
+
+        private void Start()
+        {
+            // --- XỬ LÝ QUEST HUD ---
+            GameObject questHud = GameObject.Find("QuestHUD");
+            if (questHud == null) questHud = GameObject.Find("Panel_Quests");
+
+            if (questHud != null)
+            {
+                Transform contentTr = questHud.transform.Find("QuestContent");
+                if (contentTr == null) contentTr = questHud.transform.Find("QuestText");
+                if (contentTr != null) _questContentText = contentTr.GetComponent<Text>();
+            }
+
+            // --- XỬ LÝ INVENTORY ---
+            GameObject invGo = GameObject.Find("InventoryPanel");
+            if (invGo != null)
+            {
+                _inventoryCanvas = invGo.GetComponentInParent<Canvas>();
+                _inventoryPanel = invGo.transform;
+            }
+
+            // Đăng ký nghe sự kiện
+            QuestManager.OnProgressUpdated       += RefreshQuestUI;
+            DataManager.OnInventoryChanged       += HandleInventoryChanged;
+            DataManager.OnInventoryItemAdded     += HandleInventoryItemAdded;
+            DataManager.OnPlayerLoggedIn         += HandlePlayerLoggedIn;
+
+            RefreshQuestUI();
+            RefreshInventoryUI(); // Cố gắng build lần đầu (nếu player đã login trước)
+        }
+
+        private void OnDestroy()
+        {
+            QuestManager.OnProgressUpdated       -= RefreshQuestUI;
+            DataManager.OnInventoryChanged       -= HandleInventoryChanged;
+            DataManager.OnInventoryItemAdded     -= HandleInventoryItemAdded;
+            DataManager.OnPlayerLoggedIn         -= HandlePlayerLoggedIn;
+        }
+
+        private void Update()
+        {
+            // Tìm lại InventoryPanel nếu bị mất khi load scene mới
+            if (_inventoryPanel == null && GameObject.Find("InventoryPanel") != null)
+            {
+                var invGo = GameObject.Find("InventoryPanel");
+                _inventoryCanvas = invGo.GetComponentInParent<Canvas>();
+                _inventoryPanel = invGo.transform;
+                RefreshInventoryUI();
+            }
+
+            // Kiểm tra trạng thái LandPuzzle / Tetris → ẩn/hiện inventory
+            bool isPuzzleActive = false;
+            if (LandPuzzleManager.Instance != null && LandPuzzleManager.Instance.IsPuzzleActive) isPuzzleActive = true;
+            if (GameObject.Find("Canvas_TetrisPopupUI") != null &&
+                GameObject.Find("Canvas_TetrisPopupUI").GetComponent<Canvas>().enabled) isPuzzleActive = true;
+
+            if (_inventoryCanvas != null)
+                _inventoryCanvas.enabled = !isPuzzleActive;
+        }
+
+        // ─── QUEST UI ───
+        public void RefreshQuestUI()
+        {
+            if (_questContentText == null || QuestManager.Instance == null) return;
+
+            var quests = QuestManager.Instance.activeQuests;
+            if (quests == null || quests.Count == 0)
+            {
+                _questContentText.text = "✔️ Chưa có đơn hàng nào.";
+                return;
+            }
+
+            string txt = "";
+            bool allDone = true;
+            foreach (var q in quests)
+            {
+                int current = QuestManager.Instance.GetQuestProgress(q.questID);
+                bool done = current >= q.targetAmount;
+                if (!done) allDone = false;
+
+                string checkmark = done ? "<color=green>✅</color>" : "◻️";
+                txt += $"{checkmark} <b>{q.targetItemID}</b>: {current}/{q.targetAmount}\n";
+            }
+
+            if (allDone) txt += "\n<color=yellow>🎉 BẠN ĐÃ HOÀN THÀNH TẤT CẢ ĐƠN HÀNG!</color>";
+            _questContentText.text = txt;
+        }
+
+        // Prefab của Slot (kéo vào Inspector hoặc đặt vào Resources/UI/InventorySlot)
+        [SerializeField] private GameObject slotPrefabOverride;
+        private GameObject _slotPrefab;
+
+        // ─── EVENT HANDLERS ───
+
+        /// <summary>Gọi ngay sau khi player login xong — rebuild toàn bộ inventory sau khi Canvas layout ổn định</summary>
+        private void HandlePlayerLoggedIn()
+        {
+            if (_inventoryPanel == null)
+            {
+                GameObject invGo = GameObject.Find("InventoryPanel");
+                if (invGo != null) { _inventoryCanvas = invGo.GetComponentInParent<Canvas>(); _inventoryPanel = invGo.transform; }
+            }
+            // Canvas layout cần ít nhất 2 frame để tính xong RectTransform.
+            // Gọi RefreshInventoryUI() ngay sẽ làm Mask/RectMask2D clip sai vì BackGround rect chưa ổn định.
+            StartCoroutine(RefreshInventoryAfterLayout());
+        }
+
+        private System.Collections.IEnumerator RefreshInventoryAfterLayout()
+        {
+            yield return new WaitForEndOfFrame();
+            yield return new WaitForEndOfFrame();
+            RefreshInventoryUI();
+        }
+
+        /// <summary>Gọi khi 1 item đã có trong kho thay đổi số lượng → chỉ cập nhật đúng 1 slot</summary>
+        private void HandleInventoryChanged(string itemID, int newQty)
+        {
+            Transform container = GetSlotContainer();
+            if (container == null) return;
+
+            Transform slotTr = container.Find("Slot_" + itemID);
+            if (slotTr == null) { RefreshInventoryUI(); return; } // Slot mới → full rebuild
+
+            slotTr.gameObject.SetActive(newQty > 0);
+            if (newQty > 0)
+            {
+                string qtyStr = newQty.ToString();
+                if (itemID == "tool_watercan" || itemID == "tool_hoe") qtyStr = "∞";
+
+                foreach (Text t in slotTr.GetComponentsInChildren<Text>(true))
+                    if (t.name == "txt_count" || t.name.StartsWith("txt_count"))
+                        t.text = qtyStr;
+            }
+        }
+
+        /// <summary>Gọi khi item hoàn toàn mới xuất hiện trong kho → full rebuild để tạo slot mới</summary>
+        private void HandleInventoryItemAdded(string itemID, int initialQty)
+        {
+            RefreshInventoryUI();
+        }
+
+        // ─── CORE INVENTORY BUILDER ───
+        public void RefreshInventoryUI()
+        {
+            if (_inventoryPanel == null || global::DataManager.Instance == null) return;
+            if (global::DataManager.Instance.CurrentPlayer == null) return;
+
+            // Bước 1: Tìm SlotContainer (Giờ tìm chữ Content của ScrollView)
+            Transform container = FindChildRecursive(_inventoryPanel, "SlotContainer");
+            if (container == null) container = FindChildRecursive(_inventoryPanel, "Content");
+            if (container == null) container = FindChildRecursive(_inventoryPanel, "BackGround");
+            if (container == null) return;
+
+            // Bước 2: Fix SlotContainer RectTransform — anchor left-edge, full height, no y-overflow
+            RectTransform containerRect = container.GetComponent<RectTransform>();
+            if (containerRect != null)
+            {
+                // Anchor left-edge, full height = stretch to BackGround height
+                containerRect.anchorMin        = new Vector2(0f, 0f);
+                containerRect.anchorMax        = new Vector2(0f, 1f);
+                containerRect.pivot            = new Vector2(0f, 0.5f);
+                containerRect.anchoredPosition = new Vector2(0f, 0f);
+                containerRect.sizeDelta        = new Vector2(containerRect.sizeDelta.x, 0f);
+            }
+
+            // Bước 3: Fix BackGround — swap Mask → RectMask2D + fix Image alpha
+            Transform bgTr = container.parent;
+            if (bgTr != null)
+            {
+                // Swap Mask → RectMask2D (RectMask2D ổn định hơn trong setup này)
+                Mask oldMask = bgTr.GetComponent<Mask>();
+                if (oldMask != null && oldMask.enabled)
+                {
+                    oldMask.enabled = false;
+                    if (bgTr.GetComponent<RectMask2D>() == null)
+                        bgTr.gameObject.AddComponent<RectMask2D>();
+                }
+
+                // ⚠️ FIX: RectMask2D dùng Image để tính clip region.
+                // Nếu Image.alpha = 0 → clip area không render đúng → slot bị ẩn.
+                // Phải ensure Image.alpha = 1 (có thể dùng alpha=0 trên Image component riêng nếu muốn ẩn visual).
+                Image bgImg = bgTr.GetComponent<Image>();
+                if (bgImg != null)
+                {
+                    bgImg.enabled = true;
+                    if (bgImg.color.a < 0.01f)
+                        bgImg.color = new Color(bgImg.color.r, bgImg.color.g, bgImg.color.b, 1f);
+                }
+
+                // Reset scroll position về đầu
+                ScrollRect scrollRect = bgTr.parent?.GetComponent<ScrollRect>();
+                if (scrollRect != null) scrollRect.horizontalNormalizedPosition = 0f;
+            }
+
+            // Bước 4: Load prefab từ Resources/UI/InventorySlot.prefab
+            if (_slotPrefab == null)
+                _slotPrefab = slotPrefabOverride != null
+                    ? slotPrefabOverride
+                    : Resources.Load<GameObject>(ProjectPaths.RS_UI_INVENTORY_SLOT);
+
+            if (_slotPrefab == null)
+            {
+                Debug.LogWarning("[UIDataBinder] Slot Prefab NOT FOUND. Đặt vào Resources/UI/InventorySlot.prefab hoặc kéo vào slotPrefabOverride.");
+                return;
+            }
+
+            // Bước 5: Đọc DB và build slots
+            // (Đọc từ bảng thật hoặc qua DataManager.GetItemAmount tuỳ theo hiện thực Session)
+            var sessionItems = global::DataManager.Instance.DB
+                .Table<Core.Database.InventoryModel>()
+                .Where(i => i.PlayerID == global::DataManager.Instance.CurrentPlayer.PlayerID)
+                .ToList();
+
+            var activeSlotNames = new System.Collections.Generic.HashSet<string>();
+
+            // Lấy trực tiếp quantity từ SessionInventory
+            foreach (var dbItem in sessionItems)
+            {
+                int qty = global::DataManager.Instance.GetItemAmount(dbItem.ItemID);
+                if (qty <= 0 && dbItem.ItemID != "tool_watercan" && dbItem.ItemID != "tool_hoe") continue; // Nước và cuốc không bao giờ mất
+
+                string slotName = "Slot_" + dbItem.ItemID;
+                activeSlotNames.Add(slotName);
+
+                Transform existingSlot = container.Find(slotName);
+                GameObject slotGo;
+
+                if (existingSlot == null)
+                {
+                    // Tạo slot mới
+                    slotGo = Instantiate(_slotPrefab, container);
+                    slotGo.SetActive(true);
+                    slotGo.name = slotName;
+
+                    RectTransform slotRect = slotGo.GetComponent<RectTransform>();
+                    // Fix anchor về bottom-left để HorizontalLayoutGroup tính đúng từ cạnh trái
+                    slotRect.anchorMin = new Vector2(0f, 0f);
+                    slotRect.anchorMax = new Vector2(0f, 0f);
+                    slotRect.pivot     = new Vector2(0f, 0f);
+                    if (slotRect.sizeDelta.y <= 0)
+                        slotRect.sizeDelta = new Vector2(slotRect.sizeDelta.x > 0 ? slotRect.sizeDelta.x : 100f, 90f);
+
+                    // Fix Icon rect
+                    RectTransform iconRect = slotGo.transform.Find("Icon")?.GetComponent<RectTransform>();
+                    if (iconRect != null)
+                    {
+                        iconRect.anchorMin = new Vector2(0f, 0f);
+                        iconRect.anchorMax = new Vector2(1f, 1f);
+                        iconRect.offsetMin = new Vector2(5f, 28f);
+                        iconRect.offsetMax = new Vector2(-5f, -5f);
+                    }
+
+                    // Gán Sprite
+                    Image imgComp = slotGo.transform.Find("Icon")?.GetComponent<Image>();
+                    if (imgComp != null)
+                    {
+                        Sprite finalSprite = null;
+                        if      (dbItem.ItemID.StartsWith(ProjectPaths.PREFIX_PRODUCT)) { var so = Resources.Load<CropDataSO>(ProjectPaths.RS_PREFIX_CROP_SO + dbItem.ItemID); finalSprite = so?.productIcon; }
+                        else if (dbItem.ItemID.StartsWith(ProjectPaths.PREFIX_SEED))    { var so = Resources.Load<SeedItemSO>(ProjectPaths.RS_PREFIX_SEED_SO + dbItem.ItemID); finalSprite = so?.inventoryIcon; }
+                        else if (dbItem.ItemID.StartsWith(ProjectPaths.PREFIX_TOOL) || dbItem.ItemID.StartsWith(ProjectPaths.PREFIX_ITEM))
+                                                                      { var so = Resources.Load<ToolItemSO>(ProjectPaths.RS_PREFIX_TOOL_SO + dbItem.ItemID); finalSprite = so?.inventoryIcon; }
+
+                        imgComp.sprite = finalSprite;
+                        imgComp.color  = finalSprite != null ? Color.white : new Color(0.8f, 0.8f, 0.8f, 1f);
+                        
+                        // ===== DRAGGABLE TOOL SETUP =====
+                        var draggable = imgComp.gameObject.GetComponent<FarmPuzzle.UI.DraggableTool>();
+                        if (draggable == null) draggable = imgComp.gameObject.AddComponent<FarmPuzzle.UI.DraggableTool>();
+                        
+                        draggable.isHarvestTool = false;
+                        draggable.toolType = FarmPuzzle.FarmSystem.Crop.CropNeedType.None;
+                        draggable.seedData = null;
+
+                        if (dbItem.ItemID == ProjectPaths.ID_TOOL_HOE) {
+                            draggable.isHarvestTool = true; 
+                        } else if (dbItem.ItemID == ProjectPaths.ID_TOOL_WATERCAN) {
+                            draggable.toolType = FarmPuzzle.FarmSystem.Crop.CropNeedType.Water;
+                        } else if (dbItem.ItemID == ProjectPaths.ID_TOOL_PEST) {
+                            draggable.toolType = FarmPuzzle.FarmSystem.Crop.CropNeedType.Pest;
+                        } else if (dbItem.ItemID == ProjectPaths.ID_ITEM_FERTILIZER) {
+                            draggable.toolType = FarmPuzzle.FarmSystem.Crop.CropNeedType.Fertilizer;
+                        } else if (dbItem.ItemID.StartsWith(ProjectPaths.PREFIX_SEED)) {
+                            draggable.seedData = Resources.Load<SeedItemSO>(ProjectPaths.RS_PREFIX_SEED_SO + dbItem.ItemID);
+                        } else {
+                            if (Application.isPlaying) Destroy(draggable);
+                            else DestroyImmediate(draggable);
+                        }
+                    }
+                }
+                else
+                {
+                    slotGo = existingSlot.gameObject;
+                    if (!slotGo.activeSelf) slotGo.SetActive(true);
+                }
+
+                // Cập nhật text số lượng
+                string qtyStr = qty.ToString();
+                if (dbItem.ItemID == ProjectPaths.ID_TOOL_WATERCAN || dbItem.ItemID == ProjectPaths.ID_TOOL_HOE) qtyStr = "∞";
+
+                foreach (UnityEngine.UI.Text t in slotGo.GetComponentsInChildren<UnityEngine.UI.Text>(true))
+                    if (t.name == "txt_count" || t.name.StartsWith("txt_count"))
+                        t.text = qtyStr;
+            }
+
+            // Ẩn slot không còn trong kho
+            foreach (Transform child in container)
+                if (!activeSlotNames.Contains(child.name)) child.gameObject.SetActive(false);
+
+            // Force layout rebuild
+            if (containerRect != null)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(containerRect);
+        }
+
+        // ─── HELPERS ───
+
+        private string GetItemName(string itemID)
+        {
+            if (itemID.StartsWith(ProjectPaths.PREFIX_PRODUCT))
+            {
+                CropDataSO crop = Resources.Load<CropDataSO>(ProjectPaths.RS_PREFIX_CROP_SO + itemID);
+                if (crop != null && !string.IsNullOrEmpty(crop.cropName)) return crop.cropName;
+            }
+            else if (itemID.StartsWith(ProjectPaths.PREFIX_SEED))
+            {
+                SeedItemSO seed = Resources.Load<SeedItemSO>(ProjectPaths.RS_PREFIX_SEED_SO + itemID);
+                if (seed != null && !string.IsNullOrEmpty(seed.seedName)) return seed.seedName;
+            }
+            else if (itemID.StartsWith("tool_") || itemID.StartsWith("item_"))
+            {
+                ToolItemSO tool = Resources.Load<ToolItemSO>(ProjectPaths.RS_PREFIX_TOOL_SO + itemID);
+                if (tool != null && !string.IsNullOrEmpty(tool.toolName)) return tool.toolName;
+            }
+            // Fallback hardcode cho tools chưa có SO
+            if (itemID == "tool_hoe")        return "Cái Cuốc";
+            if (itemID == "tool_watercan")   return "Bình Tưới";
+            if (itemID == "tool_pest")       return "Thuốc Sâu";
+            if (itemID == "item_fertilizer") return "Phân Bón";
+            return itemID;
+        }
+
+        private Transform FindChildRecursive(Transform parent, string name)
+        {
+            if (parent.name == name) return parent;
+            foreach (Transform child in parent)
+            {
+                Transform found = FindChildRecursive(child, name);
+                if (found != null) return found;
+            }
+            return null;
+        }
+
+        private Transform GetSlotContainer()
+        {
+            if (_inventoryPanel == null) return null;
+            Transform container = FindChildRecursive(_inventoryPanel, "SlotContainer");
+            if (container == null) container = FindChildRecursive(_inventoryPanel, "Content");
+            if (container == null) container = FindChildRecursive(_inventoryPanel, "BackGround");
+            return container;
+        }
+    }
+}
