@@ -974,18 +974,18 @@ MonoBehaviour:
   gridWidth: 50
   gridHeight: 50
   tilePrefabs:
-  - {fileID: 7974102974357716770, guid: a29bda9de1db9864cabed55c5d08317b, type: 3}
-  - {fileID: 8599668992679602380, guid: 7c8619446e2950e49991b1a0587d4faa, type: 3}
-  - {fileID: 2264838571104821915, guid: ab994ae810f70c244925a372b3466376, type: 3}
-  - {fileID: 5905933394002370395, guid: 353e5133472b0c34fb7b66e311e3dc9d, type: 3}
-  - {fileID: 4045742484577435594, guid: 0df79573a2554924282903d6486e8e77, type: 3}
-  - {fileID: 7777790241972897605, guid: bc2ebcea5d411e3489c28beeb38d638d, type: 3}
   - {fileID: 4077486767169917515, guid: 7c4c79b393a02b641821afe7715e2942, type: 3}
   - {fileID: 6782195748963982205, guid: b4760841e59e29844acbcf9e0cf26dc2, type: 3}
   - {fileID: 1561402421695820520, guid: a0a78f08f4c3b04429f42e3ef4011547, type: 3}
   - {fileID: 4955161383183606534, guid: e283b85444c0b53439fd1324353d3e8d, type: 3}
   - {fileID: 5961690883260983638, guid: 5b53e3b37374b7d4fae49063eb48b665, type: 3}
   - {fileID: 441203098787945194, guid: 8aaf38477124eeb49a66614f1ae5e32c, type: 3}
+  - {fileID: 7974102974357716770, guid: a29bda9de1db9864cabed55c5d08317b, type: 3}
+  - {fileID: 8599668992679602380, guid: 7c8619446e2950e49991b1a0587d4faa, type: 3}
+  - {fileID: 2264838571104821915, guid: ab994ae810f70c244925a372b3466376, type: 3}
+  - {fileID: 5905933394002370395, guid: 353e5133472b0c34fb7b66e311e3dc9d, type: 3}
+  - {fileID: 5905933394002370395, guid: 353e5133472b0c34fb7b66e311e3dc9d, type: 3}
+  - {fileID: 2264838571104821915, guid: ab994ae810f70c244925a372b3466376, type: 3}
   plots: []
   selectedSeed: {fileID: 0}
   registeredSeeds: []
@@ -1444,6 +1444,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FarmPuzzle.LandPuzzle.EnergySystem
   _maxEnergy: 5
   _currentEnergy: 5
+  _regenDuration: 120
 --- !u!4 &278905248
 Transform:
   m_ObjectHideFlags: 0
@@ -3115,6 +3116,10 @@ MonoBehaviour:
   loginPanel: {fileID: 2132554515}
   newPlayerPanel: {fileID: 446138856}
   hudPanel: {fileID: 422998372}
+  decorShopPanel: {fileID: 0}
+  seedShopPanel: {fileID: 0}
+  inventoryPanel: {fileID: 0}
+  farmTopBar: {fileID: 0}
   btnPlayNew: {fileID: 1221965682}
   btnRetrieve: {fileID: 18285079}
   inputPlayerName: {fileID: 1198047918}
@@ -8426,6 +8431,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FarmPuzzle.UI.FarmTopBarUI
   energyText: {fileID: 1027149042}
+  energyTimerText: {fileID: 0}
   energySlider: {fileID: 821806901}
   goldText: {fileID: 1394124503}
   gemText: {fileID: 793760048}

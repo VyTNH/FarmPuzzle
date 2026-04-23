@@ -1,4 +1,4 @@
-﻿%YAML 1.1
+%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!114 &11400000
 MonoBehaviour:
@@ -14,6 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FarmPuzzle.Meta.QuestDataSO
   questID: quest_sell_potato_30
   targetItemID: product_01
-  description: "Xuất 30x product_01 qua Tetris. Thưởng: 420 Vàng."
+  description: "Xu\u1EA5t 30x product_01 qua Tetris. Th\u01B0\u1EDFng: 420 V\xE0ng."
   targetAmount: 30
   rewardGold: 420
