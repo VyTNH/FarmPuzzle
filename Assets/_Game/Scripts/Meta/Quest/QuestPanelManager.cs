@@ -35,12 +35,17 @@ namespace FarmPuzzle.UI
         {
             QuestManager.OnProgressUpdated += OnProgressUpdated;
             QuestManager.OnGameEnded       += ShowResultPopup;
+            QuestManager.OnQuestsChanged    += BuildQuestList;
+
+            // Đảm bảo list luôn mới nhất khi mở panel
+            BuildQuestList();
         }
 
         private void OnDisable()
         {
             QuestManager.OnProgressUpdated -= OnProgressUpdated;
             QuestManager.OnGameEnded       -= ShowResultPopup;
+            QuestManager.OnQuestsChanged    -= BuildQuestList;
         }
 
         // ──────────────────────────────────────────────────────────────────
@@ -86,6 +91,17 @@ namespace FarmPuzzle.UI
                 vlg.childControlWidth      = true;
                 vlg.childAlignment = TextAnchor.LowerCenter; // Chuyển thành Bottom Center
             }
+            else
+            {
+                // Xóa các card hiện tại trước khi rebuild (để tránh bị lặp khi chơi lại lần 2)
+                foreach (Transform child in questListContainer)
+                {
+                    child.gameObject.name = "Destroying"; // Đổi tên để tránh nhầm lẫn nếu debug
+                    Destroy(child.gameObject);
+                }
+                // Giải phóng ngay lập tức trong frame này để tránh GetChild đếm nhầm
+                questListContainer.DetachChildren();
+            }
 
             if (QuestManager.Instance == null) return;
             foreach (var q in QuestManager.Instance.activeQuests)
@@ -97,6 +113,9 @@ namespace FarmPuzzle.UI
                 le.minHeight = 90; le.preferredHeight = 90;
                 cardGO.AddComponent<QuestCardUI>().Setup(q);
             }
+            
+            // Cập nhật điểm ngay khi rebuild
+            OnProgressUpdated();
         }
 
         private void BuildSettingsButton()
