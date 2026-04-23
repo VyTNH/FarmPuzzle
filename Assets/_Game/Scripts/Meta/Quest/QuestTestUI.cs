@@ -1,31 +1,34 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System;
 using System.Collections.Generic;
 
 namespace FarmPuzzle.Meta
 {
     /// <summary>
-    /// Công cụ Debug/Test: Tự động tạo các nút bấm dựa trên danh sách QUEST hiện có.
-    /// Giúp bạn giả lập việc nhặt item mà không cần viết code gameplay.
+    /// Script hỗ trợ Demo: Tự động tạo các nút bấm dựa trên danh sách QUEST có sẵn trong QuestManager.
+    /// CHỨA CÁC BIẾN SỰ KIỆN GIẢ LẬP ĐỂ TEST.
     /// </summary>
     public class QuestTestUI : MonoBehaviour
     {
+        // --- CÁC SỰ KIỆN GIẢ LẬP (Thay thế cho file QuestTestEvents cũ) ---
+        public static Action<string, int> OnTestBlockCleared; // Khi bấm nút Add
+        public static Action<int> OnTestLevelWin;           // Khi thắng màn chơi
+
         [Header("UI References")]
         public Transform buttonParent;  // Nơi chứa các nút bấm
-        public GameObject buttonPrefab; // Prefab một cái Button đơn giản
+        public GameObject buttonPrefab; // Prefab nút bấm đơn giản
 
         void Start()
         {
-            // Đợi 1 chút để QuestManager kịp khởi tạo dữ liệu
-            Invoke(nameof(SyncAndCreateButtons), 0.2f);
+            // Đợi 1 chút để QuestManager kịp Awake
+            Invoke(nameof(SyncAndCreateButtons), 0.1f);
         }
 
-        [ContextMenu("Sync Buttons")]
-        public void SyncAndCreateButtons()
+        private void SyncAndCreateButtons()
         {
             if (QuestManager.Instance == null || buttonParent == null || buttonPrefab == null)
             {
-                Debug.LogWarning("[QuestTest] Thiếu tham chiếu UI hoặc QuestManager chưa sẵn sàng.");
                 return;
             }
 
@@ -35,7 +38,7 @@ namespace FarmPuzzle.Meta
                 Destroy(child.gameObject);
             }
 
-            // 2. Duyệt danh sách nhiệm vụ đang hoạt động
+            // 2. Duyệt danh sách nhiệm vụ và tạo nút
             foreach (var item in QuestManager.Instance.activeQuests)
             {
                 if (item == null) continue;
@@ -43,22 +46,27 @@ namespace FarmPuzzle.Meta
                 GameObject btnObj = Instantiate(buttonPrefab, buttonParent);
                 string currentID = item.targetItemID;
 
-                // Đổi chữ trên nút thành "Add [Tên Item]"
+                // Đổi chữ trên nút
                 Text btnText = btnObj.GetComponentInChildren<Text>();
                 if (btnText != null) btnText.text = "Add " + currentID;
 
-                // Gán sự kiện Gửi tín hiệu nhặt đồ qua QuestEvents
+                // Gán sự kiện
                 Button btn = btnObj.GetComponent<Button>();
                 if (btn != null)
                 {
-                    btn.onClick.RemoveAllListeners();
-                    btn.onClick.AddListener(() => {
-                        // KÍCH HOẠT SỰ KIỆN TOÀN CỤC
-                        QuestEvents.OnItemCollected?.Invoke(currentID, 1);
-                        Debug.Log("<color=orange>[Test]</color> Giả lập nhặt: " + currentID);
-                    });
+                    SetupButton(btn, currentID);
                 }
             }
+        }
+
+        private void SetupButton(Button btn, string id)
+        {
+            btn.onClick.RemoveAllListeners();
+            btn.onClick.AddListener(() => {
+                // Gửi tín hiệu cộng 1 vật phẩm dùng chính biến static trong class này
+                OnTestBlockCleared?.Invoke(id, 1);
+                Debug.Log("<color=orange>[Demo]</color> Clicked Add: " + id);
+            });
         }
     }
 }

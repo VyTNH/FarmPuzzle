@@ -14,7 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FarmPuzzle.Meta.QuestDataSO
   questID: Orange
   targetItemID: Orange
-  questIcon: {fileID: 4121880872312635667, guid: 3789d123f343b684f9a4515894f11cb0, type: 3}
   description: 
   targetAmount: 10
   rewardGold: 100
