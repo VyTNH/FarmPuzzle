@@ -7,7 +7,9 @@ public class LandPlot : MonoBehaviour
 {
     public bool isOccupied = false;
     public bool isLocked = false;
-    public string plotID; 
+    public string plotID;
+    public int gridX;
+    public int gridY;
     public string plantedSeedID = ""; 
     public DateTime plantedTime; 
     
@@ -18,6 +20,15 @@ public class LandPlot : MonoBehaviour
 
     [Header("Care System")]
     public CropNeedType currentNeed = CropNeedType.None;
+
+    // ─── CARE TOOL MAPPING ───
+    private static readonly System.Collections.Generic.Dictionary<CropNeedType, (string itemID, bool consumable)> CareToolMap =
+        new()
+        {
+            { CropNeedType.Water,      ("tool_watercan",    false) },
+            { CropNeedType.Pest,        ("tool_pest",        true) },
+            { CropNeedType.Fertilizer,  ("item_fertilizer",  true) }
+        };
 
     private SpriteRenderer plantRenderer;
     private SpriteRenderer tileRenderer; 
@@ -166,43 +177,25 @@ public class LandPlot : MonoBehaviour
                 Debug.LogError($"<color=red>[LandPlot]</color> KHÔNG TÌM THẤY file Prefab <b>'{prefabPath}'</b> trong thư mục Resources! Hãy kiểm tra lại tên file.");
                 return false;
             }
-        } catch (Exception e) { 
-            Debug.LogError($"<color=red>[LandPlot]</color> Lỗi Runtime khi sinh cây: {e.Message}"); 
+        } catch (Exception e) {
+            Debug.LogError($"<color=red>[LandPlot]</color> Lỗi Runtime khi sinh cây: {e}"); // Dùng e.ToString() để lấy full stack trace
             return false;
         }
     }
 
     public void ApplyCare(CropNeedType careType)
     {
-        string itemID = "";
-        bool isConsumable = false;
+        if (!CareToolMap.TryGetValue(careType, out var tool)) return;
 
-        switch (careType)
+        if (tool.consumable)
         {
-            case CropNeedType.Water: itemID = "tool_watercan"; isConsumable = false; break; // VĨNH VIỄN!
-            case CropNeedType.Pest: itemID = "tool_pest"; isConsumable = true; break; // TIÊU HAO!
-            case CropNeedType.Fertilizer: itemID = "item_fertilizer"; isConsumable = true; break; // TIÊU HAO!
-        }
-
-        if (string.IsNullOrEmpty(itemID)) return;
-
-        // Nếu là hàng TIÊU HAO -> Kiểm tra và trừ vật phẩm
-        if (isConsumable)
-        {
-            if (DataManager.Instance != null && DataManager.Instance.RemoveItem(itemID, 1))
+            if (DataManager.Instance == null || !DataManager.Instance.RemoveItem(tool.itemID, 1))
             {
-                ApplyCareEffect(careType, itemID);
-            }
-            else
-            {
-                Debug.LogWarning($"<color=orange>[LandPlot]</color> Không đủ <b>'{itemID}'</b> tiêu hao để chăm sóc cây!");
+                Debug.LogWarning($"<color=orange>[LandPlot]</color> Không đủ <b>'{tool.itemID}'</b> tiêu hao để chăm sóc cây!");
+                return;
             }
         }
-        else
-        {
-            // Nếu là hàng VĨNH VIỄN (Bình tưới / Cuốc) -> Làm luôn không cần trừ gì cả!
-            ApplyCareEffect(careType, itemID);
-        }
+        ApplyCareEffect(careType, tool.itemID);
     }
 
     private void ApplyCareEffect(CropNeedType careType, string itemID)

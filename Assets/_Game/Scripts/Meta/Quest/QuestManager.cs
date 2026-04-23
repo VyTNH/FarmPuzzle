@@ -213,16 +213,15 @@ namespace FarmPuzzle.Meta
         // ─────────────────────────────────────────────────────────────────────
         #region End Game & Reward
 
+        private bool IsQuestCompleted(QuestDataSO q) =>
+            q != null && questProgress.TryGetValue(q.questID, out int p) && p >= q.targetAmount;
+
         /// <summary>Số quest đã hoàn thành đủ target.</summary>
         public int GetCompletedCount()
         {
             int count = 0;
             foreach (var q in activeQuests)
-            {
-                if (q == null) continue;
-                if (questProgress.TryGetValue(q.questID, out int p) && p >= q.targetAmount)
-                    count++;
-            }
+                if (IsQuestCompleted(q)) count++;
             return count;
         }
 
@@ -232,9 +231,9 @@ namespace FarmPuzzle.Meta
             int done = GetCompletedCount();
             int total = activeQuests.Count;
             if (total == 0 || done == 0) return 0;
-            if (done >= total)    return 3; // tất cả → 3 sao
-            if (done >= total - 1) return 2; // thiếu 1 → 2 sao
-            return 1; // ít nhất 1 → 1 sao
+            if (done >= total)    return 3;
+            if (done >= total - 1) return 2;
+            return 1;
         }
 
         /// <summary>Hệ số nhân gold: 1×/1.5×/2× theo số sao.</summary>
@@ -254,11 +253,7 @@ namespace FarmPuzzle.Meta
         {
             int total = 0;
             foreach (var q in activeQuests)
-            {
-                if (q == null) continue;
-                if (questProgress.TryGetValue(q.questID, out int p) && p >= q.targetAmount)
-                    total += q.rewardGold;
-            }
+                if (IsQuestCompleted(q)) total += q.rewardGold;
             return total;
         }
 

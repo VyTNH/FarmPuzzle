@@ -115,6 +115,10 @@ namespace FarmPuzzle.LandPuzzle
                 BuildExitButton();
             }
 
+            // QUAN TRỌNG: Bật lại GridBoard & BlockSpawner vì HideEntirePuzzleSystem() đã tắt chúng sau khi thắng
+            if (_gridBoard != null) _gridBoard.gameObject.SetActive(true);
+            if (_blockSpawner != null) _blockSpawner.gameObject.SetActive(true);
+
             _gridBoard.InitializeGrid(levelData);
             _gridBoard.OnLinesCleared       += HandleLinesCleared;
             _gridBoard.OnObstacleDestroyed  += HandleObstacleDestroyed;
@@ -138,6 +142,11 @@ namespace FarmPuzzle.LandPuzzle
 
         public void RetryPuzzle()
         {
+            if (_currentTargetTile != null && _currentTargetTile.puzzleLevel != null)
+            {
+                ExitPuzzle();
+                StartPuzzle(_currentTargetTile.puzzleLevel, _currentTargetTile);
+            }
         }
 
         public void ExitPuzzle()

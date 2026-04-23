@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.UI;
 using FarmPuzzle.FarmSystem.Crop;
@@ -27,6 +28,12 @@ namespace FarmPuzzle.FarmSystem
 
         private Grid _parentGrid;
 
+        // ─── OBJECT POOL ───
+        private Queue<LandPlot> _tilePool = new Queue<LandPlot>();
+        private int _tilesToSpawnRemaining = 0;
+        private int _spawnBatchCounter = 0;
+        [SerializeField] private int poolBatchSize = DEFAULT_POOL_BATCH_SIZE;
+
         private void Awake() { Instance = this; }
 
         private async void Start()
@@ -42,7 +49,77 @@ namespace FarmPuzzle.FarmSystem
             }
 
             // KHÔNG CÒN HARD-CODE: Xóa sạch map cũ và Render Bản đồ theo Data
-            GenerateGridRuntime();
+            StartCoroutine(GenerateGridWithPooling());
+        }
+
+        // ═════════════════════════════════════════
+        // TRÌNH TẠO MÀN CHƠI VỚI OBJECT POOLING (DATA-DRIVEN RENDERER)
+        // ═════════════════════════════════════════
+        private IEnumerator GenerateGridWithPooling()
+        {
+            if (_parentGrid == null) _parentGrid = GetComponent<Grid>();
+            if (tilePrefabs == null || tilePrefabs.Length < 12) {
+                Debug.LogWarning("⚠️ Hãy nạp đủ 12 Tile Prefabs vào GridManager trước khi Render!");
+                yield break;
+            }
+
+            // Dọn rác
+            foreach (Transform child in transform) {
+                if (child.GetComponent<LandPlot>() != null) Destroy(child.gameObject);
+            }
+            plots.Clear();
+            ClearPool();
+
+            string playerID = "local_player";
+            if (DataManager.Instance != null && DataManager.Instance.CurrentPlayer != null)
+                playerID = DataManager.Instance.CurrentPlayer.PlayerID;
+
+            int totalTiles = gridWidth * gridHeight;
+            _tilesToSpawnRemaining = totalTiles;
+            _spawnBatchCounter = 0;
+
+            // Spawn tiles in batches to avoid frame drops
+            while (_tilesToSpawnRemaining > 0)
+            {
+                int spawnedThisFrame = 0;
+                int batchEnd = Mathf.Min(_spawnBatchCounter + poolBatchSize, totalTiles);
+
+                for (int i = _spawnBatchCounter; i < batchEnd; i++)
+                {
+                    int x = i / gridWidth;
+                    int y = i % gridWidth;
+
+                    LandPlot lp = GetTileFromPool();
+                    lp.gameObject.SetActive(true);
+                    lp.gameObject.name = $"LandPlot_{x}_{y}";
+                    lp.transform.SetParent(transform, true); // worldPositionStays = true for existing pooled objects
+
+                    // Căn Tọa Độ Chuẩn Isometric (dùng local position vì parent đã set)
+                    Vector3Int cellPos = new Vector3Int(x, y, 0);
+                    lp.transform.localPosition = _parentGrid.GetCellCenterWorld(cellPos);
+                    lp.transform.localScale = Vector3.one;
+
+                    // XỬ LÝ CHỐNG ĐÈ HÌNH THEO TỌA ĐỘ
+                    SpriteRenderer sr = lp.GetComponent<SpriteRenderer>();
+                    if (sr != null) sr.sortingOrder = -(x + y);
+
+                    lp.plotID = "tile_" + playerID + "_" + x + "_" + y;
+                    lp.gridX = x;
+                    lp.gridY = y;
+                    lp.isLocked = true;
+
+                    plots.Add(lp);
+                    spawnedThisFrame++;
+                    _tilesToSpawnRemaining--;
+                }
+
+                _spawnBatchCounter = batchEnd;
+
+                // Yield một frame giữa các batch để tránh frame drop
+                if (_tilesToSpawnRemaining > 0)
+                    yield return null;
+            }
+
             LoadGridState();
 
             // Kích hoạt Viewport Culling nếu được gắn (tối ưu 100x100)
@@ -50,8 +127,63 @@ namespace FarmPuzzle.FarmSystem
             if (culler != null) culler.RegisterPlots(plots);
         }
 
+        // ─── POOL HELPERS ───
+        private LandPlot GetTileFromPool()
+        {
+            if (_tilePool.Count > 0)
+            {
+                LandPlot pooled = _tilePool.Dequeue();
+                // Reset pooled tile state
+                pooled.isOccupied = false;
+                pooled.isLocked = false;
+                pooled.ClearPlot();
+                return pooled;
+            }
+
+            // Pool empty - instantiate new tile
+            GameObject newTileGo = Instantiate(tilePrefabs[0], transform);
+            LandPlot lp = newTileGo.GetComponent<LandPlot>();
+            if (lp == null) lp = newTileGo.AddComponent<LandPlot>();
+            return lp;
+        }
+
+        private void ReturnTileToPool(LandPlot plot)
+        {
+            if (plot == null) return;
+            plot.gameObject.SetActive(false);
+            _tilePool.Enqueue(plot);
+        }
+
+        private void ClearPool()
+        {
+            _tilePool.Clear();
+        }
+
+        /// <summary>
+        /// Return tất cả plots vào pool (dùng khi cần reset toàn bộ grid)
+        /// </summary>
+        public void ReturnAllPlotsToPool()
+        {
+            foreach (var plot in plots)
+            {
+                if (plot != null && plot.gameObject != null)
+                    ReturnTileToPool(plot);
+            }
+            plots.Clear();
+        }
+
         private float _lastClickTime = 0f;
         private const float DOUBLE_CLICK_INTERVAL = 0.35f;
+
+        // ─── TILE INDEX CONSTANTS ───
+        private const int WILD_TILE_MIN = 0;
+        private const int WILD_TILE_MAX = 6;
+        private const int DIRT_TILE_MIN = 6;
+        private const int DIRT_TILE_MAX = 12;
+        private const int DEFAULT_UNLOCK_TILE_INDEX = 6;
+
+        // ─── POOLING CONSTANTS ───
+        private const int DEFAULT_POOL_BATCH_SIZE = 100;
 
         private void Update()
         {
@@ -75,56 +207,6 @@ namespace FarmPuzzle.FarmSystem
             }
         }
 
-
-        // ═════════════════════════════════════════
-        // TRÌNH TẠO MÀN CHƠI (DATA-DRIVEN RENDERER)
-        // ═════════════════════════════════════════
-        private void GenerateGridRuntime()
-        {
-            if (_parentGrid == null) _parentGrid = GetComponent<Grid>();
-            if (tilePrefabs == null || tilePrefabs.Length < 12) {
-                Debug.LogWarning("⚠️ Hãy nạp đủ 12 Tile Prefabs vào GridManager trước khi Render!");
-                return;
-            }
-
-            // Dọn rác
-            foreach (Transform child in transform) {
-                if (child.GetComponent<LandPlot>() != null) Destroy(child.gameObject);
-            }
-            plots.Clear();
-
-            string playerID = "local_player"; // Cũ
-            if (DataManager.Instance != null && DataManager.Instance.CurrentPlayer != null)
-                playerID = DataManager.Instance.CurrentPlayer.PlayerID;
-
-            for (int y = 0; y < gridHeight; y++)
-            {
-                for (int x = 0; x < gridWidth; x++)
-                {
-                    // Lấy Tile Mặc Định là Tile 0 (Khóa / Cỏ)
-                    GameObject newTileGo = Instantiate(tilePrefabs[0], transform);
-                    newTileGo.name = $"LandPlot_{x}_{y}";
-                    
-                    // Căn Tọa Độ Chuẩn Isometric
-                    Vector3Int cellPos = new Vector3Int(x, y, 0);
-                    newTileGo.transform.position = _parentGrid.GetCellCenterWorld(cellPos);
-                    
-                    // XỬ LÝ CHỐNG ĐÈ HÌNH THEO TỌA ĐỘ
-                    SpriteRenderer sr = newTileGo.GetComponent<SpriteRenderer>();
-                    if (sr != null) sr.sortingOrder = -(x + y);
-
-                    // Add components
-                    LandPlot lp = newTileGo.GetComponent<LandPlot>();
-                    if (lp == null) lp = newTileGo.AddComponent<LandPlot>();
-                    
-                    lp.plotID = "tile_" + playerID + "_" + x + "_" + y;
-                    lp.isLocked = true; // SỬA LỖI: Mặc định phải là KHÓA
-                    
-                    plots.Add(lp);
-                }
-            }
-            // Debug.Log($"<color=green>✅ Rendered {gridWidth * gridHeight} plots Data-Driven for {playerID}.</color>");
-        }
 
         [Header("Puzzle Config")]
         [Tooltip("Cấp độ mở đất: xếp từ Dễ (0) đến Khó (N)")]
@@ -158,18 +240,14 @@ namespace FarmPuzzle.FarmSystem
             {
                 FarmPuzzle.Core.Database.FarmTileModel dbTile = null;
                 tileDict.TryGetValue(plot.plotID, out dbTile);
-                
-                // --- TÍNH TỌA ĐỘ VÀ RANDOM TILE ---
-                string[] parts = plot.gameObject.name.Split('_');
-                int px = 0, py = 0;
-                if (parts.Length >= 3) {
-                    int.TryParse(parts[1], out px);
-                    int.TryParse(parts[2], out py);
-                }
-                
+
+                // Dùng gridX/gridY đã lưu sẵn thay vì parse string
+                int px = plot.gridX;
+                int py = plot.gridY;
+
                 UnityEngine.Random.InitState(px * 123 + py * 456);
-                int wildTileIndex = UnityEngine.Random.Range(0, 6);   // Tile cỏ dại & Rêu (0 -> 5)
-                int dirtTileIndex = UnityEngine.Random.Range(6, 12);  // Tile đất trồng (6 -> 11)
+                int wildTileIndex = UnityEngine.Random.Range(WILD_TILE_MIN, WILD_TILE_MAX);
+                int dirtTileIndex = UnityEngine.Random.Range(DIRT_TILE_MIN, DIRT_TILE_MAX);
 
                 // --- GÁN PUZZLE LỖI (Vòng tròn từ trong ra ngoài) ---
                 if (availablePuzzleLevels != null && availablePuzzleLevels.Length > 0)
@@ -225,6 +303,26 @@ namespace FarmPuzzle.FarmSystem
             });
         }
 
+        /// <summary>
+        /// Kiểm tra xem GameObject bị UI Raycast hit có thuộc về Crop Canvas hay không.
+        /// Nếu đúng thì bỏ qua (xuyên qua) để Physics2D Raycast vẫn chạm được LandPlot bên dưới.
+        /// </summary>
+        private bool IsCropUIElement(GameObject go)
+        {
+            if (go == null) return false;
+            // Đi ngược lên cây hierarchy để tìm LandPlot (cây chứa Crop_UI_Canvas)
+            Transform t = go.transform;
+            int depth = 0;
+            while (t != null && depth < 8)
+            {
+                if (t.GetComponent<LandPlot>() != null) return true;   // thuộc LandPlot → cho xuyên qua
+                if (t.GetComponent<CropGrowth>() != null) return true;  // thuộc CropGrowth → cho xuyên qua
+                t = t.parent;
+                depth++;
+            }
+            return false;
+        }
+
         public void HandleInteractionAtPos(Vector2 screenPos)
         {
             if (UnityEngine.EventSystems.EventSystem.current != null && 
@@ -236,8 +334,21 @@ namespace FarmPuzzle.FarmSystem
                 
                 if (results.Count > 0)
                 {
-                    if (results[0].gameObject.GetComponent<LandPlot>() != null || (results[0].module != null && results[0].module.rootRaycaster is UnityEngine.EventSystems.Physics2DRaycaster)) { /* Xuyên qua Tile 2D */ }
-                    else { return; } // Bị đè UI
+                    // Duyệt tất cả kết quả UI:
+                    // - Nếu gặp LandPlot hoặc Physics2DRaycaster → cho qua (tile 2D)
+                    // - Nếu gặp UI thuộc Crop Canvas → cũng cho qua (xuyên qua crop UI)
+                    // - Nếu gặp UI thật sự của HUD/Menu → chặn lại
+                    bool blocked = false;
+                    foreach (var result in results)
+                    {
+                        if (result.gameObject.GetComponent<LandPlot>() != null) break; // tile → cho qua
+                        if (result.module != null && result.module.rootRaycaster is UnityEngine.EventSystems.Physics2DRaycaster) break; // physics → cho qua
+                        if (IsCropUIElement(result.gameObject)) continue; // crop UI → bỏ qua, kiểm tra tiếp
+                        // Đây là UI thật sự (HUD, Button, Panel...) → chặn
+                        blocked = true;
+                        break;
+                    }
+                    if (blocked) return;
                 }
                 else return;
             }
@@ -251,12 +362,10 @@ namespace FarmPuzzle.FarmSystem
             LandPlot clickedPlot = hit.collider.GetComponent<LandPlot>();
             if (clickedPlot == null) return;
             
-            if (clickedPlot.isLocked) { 
+            if (clickedPlot.isLocked) {
                 if (FarmPuzzle.LandPuzzle.UI.LandPuzzlePopupController.Instance != null)
                     FarmPuzzle.LandPuzzle.UI.LandPuzzlePopupController.Instance.ShowConfirmPopup(clickedPlot);
-                // TEST: Thử tự động MỞ KHÓA nếu Admin test
-                // ChangeTileArtState(clickedPlot, 6);
-                return; 
+                return;
             }
 
             if (clickedPlot.isOccupied) { 
