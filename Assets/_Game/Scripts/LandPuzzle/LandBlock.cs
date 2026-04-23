@@ -320,15 +320,25 @@ namespace FarmPuzzle.LandPuzzle.Block
                 if (sr != null) sr.sortingOrder = order;
         }
 
-        private static Sprite MakeWhiteSprite()
+        private static Sprite _whiteSprite;
+        private static Sprite WhiteSprite
         {
-            Texture2D tex = new Texture2D(4, 4, TextureFormat.RGBA32, false);
-            Color32[] pixels = new Color32[16];
-            for (int i = 0; i < 16; i++) pixels[i] = new Color32(255, 255, 255, 255);
-            tex.SetPixels32(pixels);
-            tex.Apply();
-            return Sprite.Create(tex, new Rect(0, 0, 4, 4), new Vector2(0.5f, 0.5f), 4f);
+            get
+            {
+                if (_whiteSprite == null)
+                {
+                    Texture2D tex = new Texture2D(4, 4, TextureFormat.RGBA32, false);
+                    Color32[] pixels = new Color32[16];
+                    for (int i = 0; i < 16; i++) pixels[i] = new Color32(255, 255, 255, 255);
+                    tex.SetPixels32(pixels);
+                    tex.Apply();
+                    _whiteSprite = Sprite.Create(tex, new Rect(0, 0, 4, 4), new Vector2(0.5f, 0.5f), 4f);
+                }
+                return _whiteSprite;
+            }
         }
+
+        private static Sprite MakeWhiteSprite() => WhiteSprite;
     }
 
     // --- PHƯƠNG THỨC MỞ RỘNG (EXTENSION) ---

@@ -6,6 +6,7 @@ using FarmPuzzle.Core;
 using FarmPuzzle.Core.Database;
 using FarmPuzzle.LandPuzzle;
 using FarmPuzzle.LandPuzzle.Data;
+using TMPro;
 
 namespace FarmPuzzle.UI
 {
@@ -16,18 +17,19 @@ namespace FarmPuzzle.UI
     public class FarmTopBarUI : MonoBehaviour
     {
         [Header("Energy Bar")]
-        public Text energyText;
+        public TextMeshProUGUI energyText;
         public Text energyTimerText; // Mới: Hiển thị đếm ngược (01:45)
         public Slider energySlider;
 
         [Header("Gold & EXP")]
-        public Text goldText;   // Bind vào PlayerModel.Money
-        public Text gemText;    // Bind vào PlayerModel.EXP (giả Gem/XP)
+        public TextMeshProUGUI goldText;   // Bind vào PlayerModel.Money
+        public TextMeshProUGUI gemText;    // Bind vào PlayerModel.EXP (giả Gem/XP)
 
         [Header("Quest Tracker")]
         public GameObject questTrackerPanel;
+        public Image questItemIcon;       // Icon của item cần thu thập
         public Text questTitleText;
-        public Text questProgressText;
+        public TextMeshProUGUI questProgressText;
         public Slider questProgressSlider;
 
         [Header("Player Info")]
@@ -45,6 +47,9 @@ namespace FarmPuzzle.UI
             {
                 EnergySystem.Instance.OnEnergyChanged += UpdateEnergyUI;
             }
+
+            Refresh();
+            RefreshQuest();
         }
 
         private void OnDisable()
@@ -64,8 +69,7 @@ namespace FarmPuzzle.UI
 
         private void Start()
         {
-            Refresh();
-            RefreshQuest();
+            // Refresh được gọi trong OnEnable khi login thành công
         }
 
         private void Update()
@@ -110,7 +114,7 @@ namespace FarmPuzzle.UI
             if (es == null) return;
 
             if (energyText != null)
-                energyText.text = $"⚡ {es.CurrentEnergy} / {es.MaxEnergy}";
+                energyText.text = $"{es.CurrentEnergy} / {es.MaxEnergy}";
 
             if (energySlider != null)
             {
@@ -125,10 +129,10 @@ namespace FarmPuzzle.UI
             var player = DataManager.Instance.CurrentPlayer;
 
             if (goldText != null)
-                goldText.text = $"🪙 {player.Money:N0}";
+                goldText.text = $"{player.Money:N0}";
 
             if (gemText != null)
-                gemText.text = $"⭐ {player.EXP}";
+                gemText.text = $"{player.EXP}";
         }
 
         public void RefreshQuest()
@@ -145,16 +149,21 @@ namespace FarmPuzzle.UI
             var q    = qm.activeQuests[0];
             float prog = qm.GetQuestProgress(q.questID);
 
-            if (questTitleText != null)
+            // Hiển thị icon của item
+            if (questItemIcon != null)
             {
-                string itemName = q.targetItemID;
-                if (itemName.StartsWith(ProjectPaths.PREFIX_PRODUCT))
+                Sprite icon = null;
+                if (q.targetItemID.StartsWith(ProjectPaths.PREFIX_PRODUCT))
                 {
-                    var crop = Resources.Load<CropDataSO>(ProjectPaths.RS_PREFIX_CROP_SO + itemName);
-                    if (crop != null) itemName = crop.cropName;
+                    var crop = Resources.Load<CropDataSO>(ProjectPaths.RS_PREFIX_CROP_SO + q.targetItemID);
+                    if (crop != null) icon = crop.productIcon;
                 }
-                questTitleText.text = $"📜 {itemName}";
+                questItemIcon.sprite  = icon;
+                questItemIcon.enabled = icon != null;
             }
+
+            if (questTitleText != null)
+                questTitleText.text = "📜 Quest";
             if (questProgressText != null) questProgressText.text = $"{prog} / {q.targetAmount}";
 
             if (questProgressSlider != null)

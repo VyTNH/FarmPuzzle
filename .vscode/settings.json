@@ -67,5 +67,5 @@
         "*.sln": "*.csproj",
         "*.slnx": "*.csproj"
     },
-    "dotnet.defaultSolution": "farmpuzzle.slnx"
+    "dotnet.defaultSolution": "FarmPuzzle.slnx"
 }

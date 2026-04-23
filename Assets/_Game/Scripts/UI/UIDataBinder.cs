@@ -12,10 +12,32 @@ namespace FarmPuzzle.UI
     /// </summary>
     public class UIDataBinder : MonoBehaviour
     {
-        // ─── TỰ ĐỘNG TÌM COMPONENT SINH RA BẰNG UI BUILDER ───
+        // ─── CACHED REFERENCES ───
         private Text _questContentText;
         private Transform _inventoryPanel;
         private Canvas _inventoryCanvas;
+        private Canvas _tetrisPopupCanvas;
+
+        // ─── CACHED GAME OBJECT NAMES ───
+        private const string NAME_INVENTORY_PANEL = "InventoryPanel";
+        private const string NAME_TETRIS_POPUP = "Canvas_TetrisPopupUI";
+
+        private void OnEnable()
+        {
+            // Đăng ký nghe sự kiện
+            QuestManager.OnProgressUpdated += RefreshQuestUI;
+            DataManager.OnInventoryChanged += HandleInventoryChanged;
+            DataManager.OnInventoryItemAdded += HandleInventoryItemAdded;
+            DataManager.OnPlayerLoggedIn += HandlePlayerLoggedIn;
+        }
+
+        private void OnDisable()
+        {
+            QuestManager.OnProgressUpdated -= RefreshQuestUI;
+            DataManager.OnInventoryChanged -= HandleInventoryChanged;
+            DataManager.OnInventoryItemAdded -= HandleInventoryItemAdded;
+            DataManager.OnPlayerLoggedIn -= HandlePlayerLoggedIn;
+        }
 
         private void Awake()
         {
@@ -25,9 +47,7 @@ namespace FarmPuzzle.UI
         private void Start()
         {
             // --- XỬ LÝ QUEST HUD ---
-            GameObject questHud = GameObject.Find("QuestHUD");
-            if (questHud == null) questHud = GameObject.Find("Panel_Quests");
-
+            GameObject questHud = FindGameObjectCached("QuestHUD", "Panel_Quests");
             if (questHud != null)
             {
                 Transform contentTr = questHud.transform.Find("QuestContent");
@@ -35,51 +55,56 @@ namespace FarmPuzzle.UI
                 if (contentTr != null) _questContentText = contentTr.GetComponent<Text>();
             }
 
-            // --- XỬ LÝ INVENTORY ---
-            GameObject invGo = GameObject.Find("InventoryPanel");
-            if (invGo != null)
-            {
-                _inventoryCanvas = invGo.GetComponentInParent<Canvas>();
-                _inventoryPanel = invGo.transform;
-            }
+            // --- CACHED: Tìm và cache InventoryPanel một lần duy nhất ---
+            TryFindInventoryPanel();
 
-            // Đăng ký nghe sự kiện
-            QuestManager.OnProgressUpdated       += RefreshQuestUI;
-            DataManager.OnInventoryChanged       += HandleInventoryChanged;
-            DataManager.OnInventoryItemAdded     += HandleInventoryItemAdded;
-            DataManager.OnPlayerLoggedIn         += HandlePlayerLoggedIn;
+            // --- CACHED: Tìm và cache TetrisPopupCanvas một lần duy nhất ---
+            _tetrisPopupCanvas = FindGameObjectCached(NAME_TETRIS_POPUP)?.GetComponent<Canvas>();
 
             RefreshQuestUI();
-            RefreshInventoryUI(); // Cố gắng build lần đầu (nếu player đã login trước)
+            RefreshInventoryUI();
         }
 
         private void OnDestroy()
         {
-            QuestManager.OnProgressUpdated       -= RefreshQuestUI;
-            DataManager.OnInventoryChanged       -= HandleInventoryChanged;
-            DataManager.OnInventoryItemAdded     -= HandleInventoryItemAdded;
-            DataManager.OnPlayerLoggedIn         -= HandlePlayerLoggedIn;
+            QuestManager.OnProgressUpdated -= RefreshQuestUI;
+            DataManager.OnInventoryChanged -= HandleInventoryChanged;
+            DataManager.OnInventoryItemAdded -= HandleInventoryItemAdded;
+            DataManager.OnPlayerLoggedIn -= HandlePlayerLoggedIn;
         }
 
         private void Update()
         {
-            // Tìm lại InventoryPanel nếu bị mất khi load scene mới
-            if (_inventoryPanel == null && GameObject.Find("InventoryPanel") != null)
+            // Chỉ tìm lại InventoryPanel khi bị mất VÀ cần thiết (scene transition)
+            if (_inventoryPanel == null) TryFindInventoryPanel();
+
+            // Dùng cached reference thay vì GameObject.Find() mỗi frame
+            bool isPuzzleActive = LandPuzzleManager.Instance != null && LandPuzzleManager.Instance.IsPuzzleActive;
+            if (_tetrisPopupCanvas != null && _tetrisPopupCanvas.enabled) isPuzzleActive = true;
+
+            if (_inventoryCanvas != null)
+                _inventoryCanvas.enabled = !isPuzzleActive;
+        }
+
+        private void TryFindInventoryPanel()
+        {
+            GameObject invGo = FindGameObjectCached(NAME_INVENTORY_PANEL);
+            if (invGo != null)
             {
-                var invGo = GameObject.Find("InventoryPanel");
                 _inventoryCanvas = invGo.GetComponentInParent<Canvas>();
                 _inventoryPanel = invGo.transform;
                 RefreshInventoryUI();
             }
+        }
 
-            // Kiểm tra trạng thái LandPuzzle / Tetris → ẩn/hiện inventory
-            bool isPuzzleActive = false;
-            if (LandPuzzleManager.Instance != null && LandPuzzleManager.Instance.IsPuzzleActive) isPuzzleActive = true;
-            if (GameObject.Find("Canvas_TetrisPopupUI") != null &&
-                GameObject.Find("Canvas_TetrisPopupUI").GetComponent<Canvas>().enabled) isPuzzleActive = true;
-
-            if (_inventoryCanvas != null)
-                _inventoryCanvas.enabled = !isPuzzleActive;
+        private static GameObject FindGameObjectCached(params string[] names)
+        {
+            foreach (string name in names)
+            {
+                var go = GameObject.Find(name);
+                if (go != null) return go;
+            }
+            return null;
         }
 
         // ─── QUEST UI ───
@@ -119,13 +144,8 @@ namespace FarmPuzzle.UI
         /// <summary>Gọi ngay sau khi player login xong — rebuild toàn bộ inventory sau khi Canvas layout ổn định</summary>
         private void HandlePlayerLoggedIn()
         {
-            if (_inventoryPanel == null)
-            {
-                GameObject invGo = GameObject.Find("InventoryPanel");
-                if (invGo != null) { _inventoryCanvas = invGo.GetComponentInParent<Canvas>(); _inventoryPanel = invGo.transform; }
-            }
+            TryFindInventoryPanel();
             // Canvas layout cần ít nhất 2 frame để tính xong RectTransform.
-            // Gọi RefreshInventoryUI() ngay sẽ làm Mask/RectMask2D clip sai vì BackGround rect chưa ổn định.
             StartCoroutine(RefreshInventoryAfterLayout());
         }
 

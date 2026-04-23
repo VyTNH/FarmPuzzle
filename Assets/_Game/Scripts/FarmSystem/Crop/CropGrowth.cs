@@ -46,7 +46,28 @@ namespace FarmPuzzle.FarmSystem.Crop
             if (needIconSprite != null) needIconSprite.gameObject.SetActive(false);
             if (harvestIcon != null) harvestIcon.gameObject.SetActive(false);
             
+            // Tắt raycastTarget trên tất cả UI con để không chặn click vào LandPlot bên dưới
+            DisableCropCanvasRaycast();
+            
             UpdateGrowth();
+        }
+
+        /// <summary>
+        /// Tắt raycastTarget trên mọi Image/Text trong Crop Canvas.
+        /// Điều này đảm bảo Physics2DRaycaster vẫn detect được PolygonCollider2D của LandPlot
+        /// dù Canvas WorldSpace đang hiển thị UI cây trồng bên trên.
+        /// </summary>
+        private void DisableCropCanvasRaycast()
+        {
+            // Tìm tất cả Graphic (Image, Text, RawImage...) trong cùng GameObject và con cháu
+            var graphics = GetComponentsInChildren<UnityEngine.UI.Graphic>(true);
+            foreach (var g in graphics)
+                g.raycastTarget = false;
+            
+            // Tắt luôn GraphicRaycaster trên Canvas nếu có (nguồn gốc chặn UI)
+            var raycasters = GetComponentsInChildren<UnityEngine.UI.GraphicRaycaster>(true);
+            foreach (var r in raycasters)
+                r.enabled = false;
         }
 
         private void Update()
@@ -77,6 +98,15 @@ namespace FarmPuzzle.FarmSystem.Crop
 
             if (progress >= 1f && !_isHarvestable)
             {
+                // Xóa mọi nhu cầu còn tồn đọng khi cây đã chín hoàn toàn.
+                // Nếu không làm điều này, _currentNeed != None sẽ khiến IsHarvestable = false
+                // dù _isHarvestable = true → player không thu hoạch được trong cùng phiên chơi.
+                if (_currentNeed != CropNeedType.None)
+                {
+                    _currentNeed = CropNeedType.None;
+                    if (needIconUI != null)     needIconUI.gameObject.SetActive(false);
+                    if (needIconSprite != null) needIconSprite.gameObject.SetActive(false);
+                }
                 _isHarvestable = true;
                 UpdateHarvestVisual();
             }
@@ -98,6 +128,9 @@ namespace FarmPuzzle.FarmSystem.Crop
 
         public void ShowNeed(CropNeedType type)
         {
+            // Không áp dụng nhu cầu chăm sóc nếu cây đã chín rồi
+            if (_isHarvestable) return;
+
             _currentNeed = type;
             
             if (needIconUI != null) 

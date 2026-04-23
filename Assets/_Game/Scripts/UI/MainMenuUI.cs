@@ -11,6 +11,7 @@ namespace FarmPuzzle.UI
         public GridManager gridManager;
         
         [Header("UI Panels")]
+        public GameObject gameTitle;       // Title của game
         public GameObject loginPanel;      // Nơi chứa 2 nút ban đầu
         public GameObject newPlayerPanel;  // Nơi nhập tên nếu người chơi mới
         public GameObject hudPanel;        // Nơi chứa nút Mở Tetris, v.v. khi đã vào game
@@ -90,6 +91,7 @@ namespace FarmPuzzle.UI
 
         private void OnPlayNewClicked()
         {
+            if (gameTitle != null) gameTitle.SetActive(false);
             ShowPanel(newPlayerPanel);
         }
 
@@ -103,6 +105,7 @@ namespace FarmPuzzle.UI
 
         private void OnRetrieveClicked()
         {
+            if (gameTitle != null) gameTitle.SetActive(false);
             Login(_lastUsedID, "Khách Cũ");
         }
 

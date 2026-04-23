@@ -23,6 +23,9 @@ namespace FarmPuzzle.Tetris
         public int width = 10;
         public int height = 24; // Mở rộng 4 dòng trên đỉnh làm Vùng Khởi Tạo Ẩn (Buffer Zone) -> Khi rơi qua Mask mới hiện!
 
+        // ─── CONSTANTS ───
+        private static readonly Color EMPTY_CELL_COLOR = new Color(0f, 0f, 0f, 0.2f);
+
         private Image[,] boardCells;
         private string[,] boardTypes; // Lưu ProductID của từng ô
 
@@ -78,7 +81,7 @@ namespace FarmPuzzle.Tetris
                     rt.pivot = new Vector2(0, 0);
                     rt.anchoredPosition = new Vector2(x * blockSize, y * blockSize);
                     
-                    cell.color = new Color(0, 0, 0, 0.2f); // Lưới mờ
+                    cell.color = EMPTY_CELL_COLOR;
                     boardCells[x, y] = cell;
                     boardTypes[x, y] = "";
                 }
@@ -122,7 +125,7 @@ namespace FarmPuzzle.Tetris
                 for (int x = 0; x < width; x++)
                 {
                     boardTypes[x, y] = "";
-                    boardCells[x, y].color = new Color(0,0,0, 0.2f);
+                    boardCells[x, y].color = EMPTY_CELL_COLOR;
                     boardCells[x, y].sprite = null;
                 }
 
@@ -190,7 +193,7 @@ namespace FarmPuzzle.Tetris
             {
                 Debug.LogWarning("[Tetris] KHO NÔNG SẢN RỖNG!!! Không thể sinh mảnh Tetris. Vui lòng trồng thêm nông sản.");
                 if (inventoryText != null) inventoryText.text = "Bạn đã hết nông sản để chơi!";
-                
+
                 // MỚI: Game Over ngay lập tức vì không còn đạn để xếp!
                 GameOver();
                 return;
@@ -199,20 +202,16 @@ namespace FarmPuzzle.Tetris
             // Chọn ngẫu nhiên nông sản đang có trong kho
             var randomCrop = cropInv[Random.Range(0, cropInv.Count)];
             currentProductID = randomCrop.Key;
-                totalStock = randomCrop.Value;
-                if (inventoryText != null) inventoryText.text = $"Rơi: {currentProductID} | Kho: {totalStock}";
+            totalStock = randomCrop.Value;
+            if (inventoryText != null) inventoryText.text = $"Rơi: {currentProductID} | Kho: {totalStock}";
 
-                if (cropMapSO != null)
-                {
-                    var map = cropMapSO.GetMapping(currentProductID);
-                    if (map != null) { currentSprite = map.tetrisSprite; currentColor = map.fallBackColor; }
-                    else             { currentSprite = null; currentColor = Color.gray; }
-                }
-                else { currentSprite = null; currentColor = Color.gray; }
-
-                // ── Bước 4 FIX: KHÔNG trừ item ở đây.
-                // Item chỉ bị trừ khi hàng bị xóa thành công (CheckLines).
-                // Điều này đảm bảo Game Over không làm mất item oan.
+            if (cropMapSO != null)
+            {
+                var map = cropMapSO.GetMapping(currentProductID);
+                if (map != null) { currentSprite = map.tetrisSprite; currentColor = map.fallBackColor; }
+                else             { currentSprite = null; currentColor = Color.gray; }
+            }
+            else { currentSprite = null; currentColor = Color.gray; }
             
 
             int shapeIdx = Random.Range(0, Tetrominoes.Length);
@@ -414,62 +413,65 @@ namespace FarmPuzzle.Tetris
         {
             for (int y = 0; y < height; y++)
             {
-                bool isFull = true;
-                for (int x = 0; x < width; x++)
+                if (!IsRowFull(y)) continue;
+
+                // ── Score: +10 điểm cố định mỗi hàng xóa ──
+                FarmPuzzle.Meta.QuestManager.Instance?.AddScore(10);
+
+                var destroyedCrops = CollectAndClearRow(y);
+
+                foreach (var kvp in destroyedCrops)
                 {
-                    if (boardTypes[x, y] == "") { isFull = false; break; }
+                    Debug.Log($"<color=green>[Tetris]</color> Xóa hàng thành công: {kvp.Value}x {kvp.Key}");
+                    DataManager.Instance?.RemoveItem(kvp.Key, kvp.Value);
+                    FarmPuzzle.Meta.QuestManager.Instance?.UpdateProgress(kvp.Key, kvp.Value);
                 }
 
-                if (isFull)
-                {
-                    // ── Score: +10 điểm cố định mỗi hàng xóa ──
-                    FarmPuzzle.Meta.QuestManager.Instance?.AddScore(10);
-
-                    // Đếm loại nông sản bị xóa trong hàng này
-                    Dictionary<string, int> destroyedCrops = new Dictionary<string, int>();
-                    for (int x = 0; x < width; x++)
-                    {
-                        string pid = boardTypes[x, y];
-                        if (string.IsNullOrEmpty(pid)) continue;
-                        if (!destroyedCrops.ContainsKey(pid)) destroyedCrops[pid] = 0;
-                        destroyedCrops[pid]++;
-                    }
-
-                    foreach (var kvp in destroyedCrops)
-                    {
-                        Debug.Log($"<color=green>[Tetris]</color> Xóa hàng thành công: {kvp.Value}x {kvp.Key}");
-
-                        // ── Bước 4 FIX: Trừ item tại đây — chỉ khi xóa hàng thành công ──
-                        DataManager.Instance?.RemoveItem(kvp.Key, kvp.Value);
-
-                        // Cập nhật tiến độ Quest
-                        FarmPuzzle.Meta.QuestManager.Instance?.UpdateProgress(kvp.Key, kvp.Value);
-                    }
-
-                    // Kéo lưới xuống
-                    for (int pullY = y; pullY < height - 1; pullY++)
-                    {
-                        for (int x = 0; x < width; x++)
-                        {
-                            boardTypes[x, pullY] = boardTypes[x, pullY + 1];
-                            boardCells[x, pullY].sprite = boardCells[x, pullY + 1].sprite;
-                            boardCells[x, pullY].color = boardCells[x, pullY + 1].color;
-                        }
-                    }
-                    
-                    // Reset dòng trên cùng
-                    for (int x = 0; x < width; x++)
-                    {
-                        boardTypes[x, height - 1] = "";
-                        boardCells[x, height - 1].sprite = null;
-                        boardCells[x, height - 1].color = new Color(0,0,0, 0.2f);
-                    }
-                    
-                    y--; // Kiểm tra lại dòng vừa rớt xuống
-                }
+                PullRowsDown(y);
+                y--;
             }
 
             UpdateQuestUI();
-        } // End of CheckLines
+        }
+
+        private bool IsRowFull(int y)
+        {
+            for (int x = 0; x < width; x++)
+                if (boardTypes[x, y] == "") return false;
+            return true;
+        }
+
+        private Dictionary<string, int> CollectAndClearRow(int y)
+        {
+            var destroyed = new Dictionary<string, int>();
+            for (int x = 0; x < width; x++)
+            {
+                string pid = boardTypes[x, y];
+                if (!string.IsNullOrEmpty(pid))
+                {
+                    destroyed[pid] = destroyed.GetValueOrDefault(pid, 0) + 1;
+                    boardTypes[x, y] = "";
+                }
+            }
+            return destroyed;
+        }
+
+        private void PullRowsDown(int fromY)
+        {
+            for (int pullY = fromY; pullY < height - 1; pullY++)
+                for (int x = 0; x < width; x++)
+                {
+                    boardTypes[x, pullY] = boardTypes[x, pullY + 1];
+                    boardCells[x, pullY].sprite = boardCells[x, pullY + 1].sprite;
+                    boardCells[x, pullY].color = boardCells[x, pullY + 1].color;
+                }
+
+            for (int x = 0; x < width; x++)
+            {
+                boardTypes[x, height - 1] = "";
+                boardCells[x, height - 1].sprite = null;
+                boardCells[x, height - 1].color = EMPTY_CELL_COLOR;
+            }
+        }
     }
 }

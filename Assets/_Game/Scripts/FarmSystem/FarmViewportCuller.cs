@@ -44,14 +44,7 @@ namespace FarmPuzzle.FarmSystem
             _allMeta.Clear();
             foreach (var p in plots)
             {
-                var parts = p.gameObject.name.Split('_');
-                int px = 0, py = 0;
-                if (parts.Length >= 3)
-                {
-                    int.TryParse(parts[1], out px);
-                    int.TryParse(parts[2], out py);
-                }
-                _allMeta.Add(new PlotMeta { plot = p, gridX = px, gridY = py });
+                _allMeta.Add(new PlotMeta { plot = p, gridX = p.gridX, gridY = p.gridY });
             }
         }
 

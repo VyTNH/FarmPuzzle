@@ -10,11 +10,27 @@ public class DataManager : MonoBehaviour
     public static DataManager Instance { get; private set; }
     public SQLiteConnection DB { get; private set; }
 
-    // ─── GRID CONFIG — Single source of truth cho kích thước farm ───
+    // ─── CONSTANTS ───
     private const int GRID_W = 50;
     private const int GRID_H = 50;
+    private const int DEFAULT_STARTER_MONEY = 500;
+    private const int DEFAULT_STARTER_SEEDS = 5;
+    private const int DEFAULT_STARTER_PRODUCTS = 20;
     public static int GridWidth  => Instance != null ? GRID_W : 50;
     public static int GridHeight => Instance != null ? GRID_H : 50;
+
+    // ─── SESSION INVENTORY HELPERS ───
+    private System.Collections.Generic.Dictionary<string, int> _sessionInventory = new System.Collections.Generic.Dictionary<string, int>();
+    private System.Collections.Generic.HashSet<string> _sessionChanges = new System.Collections.Generic.HashSet<string>();
+
+    private int GetSessionQty(string itemID) =>
+        _sessionInventory.TryGetValue(itemID, out int qty) ? qty : 0;
+
+    private void SetSessionQty(string itemID, int qty)
+    {
+        _sessionInventory[itemID] = qty;
+        _sessionChanges.Add(itemID);
+    }
 
     // ─── EVENTS: Bắn khi kho đồ thay đổi (để UI lắng nghe, không cần polling) ───
     /// <summary>Fire khi số lượng item đã có thay đổi. (itemID, newQuantity)</summary>
@@ -179,7 +195,7 @@ public class DataManager : MonoBehaviour
             PlayerID = userID,
             Name = userName,
             EXP = 0,
-            Money = 500 // Tiền khởi nghiệp
+            Money = DEFAULT_STARTER_MONEY // Tiền khởi nghiệp
         };
         DB.Insert(newPlayer);
         Debug.Log($"- Đã tạo dòng mới trong bảng PLAYER: {userName} | 💰 khởi tạo: 500G");
@@ -202,7 +218,6 @@ public class DataManager : MonoBehaviour
         // Đổ data vào RAM để dùng trong quá trình Game Loop chạy
         CurrentPlayer = newPlayer;
         CacheInventoryFromDB();
-        CacheInventoryFromDB();
 
         Debug.Log("- Da phan phoi day du Starter Kit vao SQLite.");
         OnPlayerLoggedIn?.Invoke();
@@ -210,9 +225,6 @@ public class DataManager : MonoBehaviour
     }
 
     // ==== SESSION INVENTORY (RAM) ====
-    private System.Collections.Generic.Dictionary<string, int> _sessionInventory = new System.Collections.Generic.Dictionary<string, int>();
-    private System.Collections.Generic.HashSet<string> _sessionChanges = new System.Collections.Generic.HashSet<string>();
-
     public System.Collections.Generic.Dictionary<string, int> GetSessionInventory()
     {
         return _sessionInventory;
@@ -270,46 +282,42 @@ public class DataManager : MonoBehaviour
     public void AddItem(string itemID, int amount)
     {
         if (CurrentPlayer == null || amount <= 0) return;
-        
-        int currentQty = _sessionInventory.ContainsKey(itemID) ? _sessionInventory[itemID] : 0;
-        int newQty = currentQty + amount;
-        _sessionInventory[itemID] = newQty;
-        _sessionChanges.Add(itemID);
+
+        int newQty = GetSessionQty(itemID) + amount;
+        SetSessionQty(itemID, newQty);
 
         Debug.Log($"<color=orange>[STAGE 3: Gameplay -> RAM]</color> Nhặt được {amount}x {itemID}! Tổng lượng trong RAM: {newQty}. CHƯA LƯU CỨNG, LÀM ƠN COMMIT NGAY SAU ĐÓ!");
-        
+
         // --- STAGE 2 INJECTION LOGGING ---
         Debug.Log($"<color=yellow>[STAGE 2: RAM -> UI]</color> Đang bắn tín hiệu OnInventoryChanged cho Thằng UI Kho Hàng biết để nó Cập nhật Vẽ lại màn hình!");
-        if (currentQty == 0) OnInventoryItemAdded?.Invoke(itemID, amount);
+        if (GetSessionQty(itemID) == amount) OnInventoryItemAdded?.Invoke(itemID, amount);
         else OnInventoryChanged?.Invoke(itemID, newQty);
     }
 
     public bool RemoveItem(string itemID, int amount)
     {
         if (CurrentPlayer == null) return false;
-        
-        int currentQty = _sessionInventory.ContainsKey(itemID) ? _sessionInventory[itemID] : 0;
+
+        int currentQty = GetSessionQty(itemID);
         if (currentQty >= amount)
         {
             int newQty = currentQty - amount;
-            _sessionInventory[itemID] = newQty;
-            _sessionChanges.Add(itemID);
+            SetSessionQty(itemID, newQty);
             Debug.Log($"<color=orange>[STAGE 3: Gameplay -> RAM]</color> Bị trừ tiêu hao -{amount}x {itemID}. Còn {newQty}. CHƯA LƯU CỨNG, chờ COMMIT!");
             Debug.Log($"<color=yellow>[STAGE 2: RAM -> UI]</color> Đang bắn tín hiệu OnInventoryChanged để UI cập nhật số lượng mới!");
             OnInventoryChanged?.Invoke(itemID, newQty);
             return true;
         }
-        
+
         Debug.LogWarning($"[DataManager-RAM] Không đủ {amount}x {itemID} trong kho để trừ! (Có: {currentQty})");
         return false;
     }
 
-    // ==== TRUY VẤN KHO ĐỒ ====
+    // ==== TRUY VẤN KHO ĐỒ (Dùng RAM cache) ====
     public int GetItemAmount(string itemID)
     {
-        if (!IsReady || CurrentPlayer == null) return 0;
-        var inv = DB.Table<InventoryModel>().FirstOrDefault(i => i.PlayerID == CurrentPlayer.PlayerID && i.ItemID == itemID);
-        return inv != null ? inv.Quantity : 0;
+        if (CurrentPlayer == null) return 0;
+        return GetSessionQty(itemID);
     }
 
     // ==== API NÔNG TRẠI (FARM_TILE) ====
@@ -387,37 +395,27 @@ public class DataManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Migration: Phát hiện và vá các item mới trong Starter Kit cho player cũ.
-    /// Gọi sau LoginPlayer() khi tài khoản đã tồn tại.
-    /// KHAI TE tài khoản cũ: chỉ thêm item mới với qty=0, KHÔNG reset định mức cũ.
-    /// </summary>
     private void MigratePlayerData(string userID)
     {
-        // Danh sách tất cả item mà player bất kỳ đều nên có slot (dù đang = 0)
-        var expectedItems = new System.Collections.Generic.Dictionary<string, int>
+        var expectedItems = new System.Collections.Generic.HashSet<string>
         {
-            { "seed_01",         0 },   // slot rỗng nếu chưa có
-            { "seed_02",         0 },
-            { "seed_03",         0 },
-            { "seed_04",         0 },
-            { "tool_hoe",        0 },
-            { "tool_watercan",   0 },
-            { "tool_pest",       0 },
-            { "item_fertilizer", 0 },
-            // → thêm item mới ở đây khi data mở rộng
+            "seed_01", "seed_02", "seed_03", "seed_04",
+            "tool_hoe", "tool_watercan", "tool_pest", "item_fertilizer"
         };
 
+        var existingIDs = DB.Table<InventoryModel>()
+            .Where(i => i.PlayerID == userID)
+            .Select(i => i.ItemID)
+            .ToHashSet();
+
         int patched = 0;
-        foreach (var entry in expectedItems)
+        foreach (var itemID in expectedItems)
         {
-            bool exists = DB.Table<InventoryModel>()
-                .Any(i => i.PlayerID == userID && i.ItemID == entry.Key);
-            if (!exists)
+            if (!existingIDs.Contains(itemID))
             {
-                DB.Insert(new InventoryModel { PlayerID = userID, ItemID = entry.Key, Quantity = entry.Value });
+                DB.Insert(new InventoryModel { PlayerID = userID, ItemID = itemID, Quantity = 0 });
                 patched++;
-                Debug.Log($"[Migration] Vá slot mới cho player cũ: {entry.Key} (qty={entry.Value})");
+                Debug.Log($"[Migration] Vá slot mới cho player cũ: {itemID} (qty=0)");
             }
         }
         if (patched > 0)
