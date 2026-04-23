@@ -24,6 +24,12 @@ public class CameraDrag : MonoBehaviour
     private Vector2 _mouseDownScreen;
     private Camera cam;
 
+    // ─── Chống drag sau khi scroll/zoom ───
+    [Header("Chống Drag Khi Scroll")]
+    [Tooltip("Thời gian (giây) block drag sau khi scroll / pinch zoom")]
+    public float scrollDragCooldown = 0.15f;
+    private float _scrollCooldownTimer = 0f;
+
     // ─── Zoom ───
     [Header("Giới Hạn Zoom")]
     public float minZoom = 2f;
@@ -53,8 +59,13 @@ public class CameraDrag : MonoBehaviour
         
         if (isTetris || isLand || IsLockedByTool) return;
 
-        PanCamera();
-        ZoomCamera();
+        // Đếm ngược cooldown scroll
+        if (_scrollCooldownTimer > 0f)
+            _scrollCooldownTimer -= Time.unscaledDeltaTime;
+
+        ZoomCamera();          // Zoom trước để cập nhật cooldown
+        if (_scrollCooldownTimer <= 0f)
+            PanCamera();       // Drag chỉ chạy khi không trong vùng cooldown
     }
 
     private void PanCamera()
@@ -98,6 +109,9 @@ public class CameraDrag : MonoBehaviour
         {
             cam.orthographicSize -= scroll * zoomSpeedMouse;
             cam.orthographicSize = Mathf.Clamp(cam.orthographicSize, minZoom, maxZoom);
+            // Block drag trong thời gian cooldown sau khi scroll
+            _scrollCooldownTimer = scrollDragCooldown;
+            IsDragging = false;
         }
 
         if (Input.touchCount == 2)
@@ -108,6 +122,9 @@ public class CameraDrag : MonoBehaviour
             float curMag  = (t0.position - t1.position).magnitude;
             cam.orthographicSize -= (curMag - prevMag) * zoomSpeedTouch;
             cam.orthographicSize = Mathf.Clamp(cam.orthographicSize, minZoom, maxZoom);
+            // Block drag khi đang pinch zoom 2 ngón
+            _scrollCooldownTimer = scrollDragCooldown;
+            IsDragging = false;
         }
     }
 
