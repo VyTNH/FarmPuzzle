@@ -355,9 +355,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 699a84208851cb542ace7c4674a644f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FarmPuzzle.FarmSystem.Visual.CropDisplay
-  seedSprite: {fileID: 21300000, guid: 878441973089d3d4ea7c6569cd3edaa1, type: 3}
+  seedSprite: {fileID: -1091699285454546756, guid: 98547fdda226b604e8641b91797e9e0b, type: 3}
   growingSprite: {fileID: 21300000, guid: 878441973089d3d4ea7c6569cd3edaa1, type: 3}
-  harvestableSprite: {fileID: 21300000, guid: 878441973089d3d4ea7c6569cd3edaa1, type: 3}
+  harvestableSprite: {fileID: -8113185096396602001, guid: 4bc0b5028cf51454ab3a8a4cb074b2be, type: 3}
 --- !u!114 &2923661790342518532
 MonoBehaviour:
   m_ObjectHideFlags: 0

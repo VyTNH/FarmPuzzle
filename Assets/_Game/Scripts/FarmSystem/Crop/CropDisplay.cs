@@ -1,4 +1,4 @@
-    using UnityEngine;
+using UnityEngine;
 using FarmPuzzle.FarmSystem.Crop;
 
 namespace FarmPuzzle.FarmSystem.Visual
@@ -20,31 +20,36 @@ namespace FarmPuzzle.FarmSystem.Visual
         private void Awake()
         {
             _sr = GetComponent<SpriteRenderer>();
-            _growth = GetComponentInParent<CropGrowth>();
-            if (_growth == null) _growth = GetComponent<CropGrowth>();
+
+            // [FIX Bug #2] Tìm CropGrowth theo cả 3 hướng để tránh miss
+            _growth = GetComponent<CropGrowth>();                        // Chính nó
+            if (_growth == null) _growth = GetComponentInParent<CropGrowth>();  // Cha
+            if (_growth == null) _growth = GetComponentInChildren<CropGrowth>(); // Con
+
+            if (_growth == null)
+                Debug.LogWarning($"[CropDisplay] Không tìm thấy CropGrowth trên '{gameObject.name}' hoặc parent/children của nó!");
         }
 
         private void Update()
         {
             if (_growth == null || _sr == null) return;
 
-            // Cập nhật Sprite dựa trên thanh slider hoặc progress
-            float progress = 0;
-            if (_growth.progressSlider != null) 
-                progress = _growth.progressSlider.value;
+            // [FIX] Đọc progress trực tiếp từ CropGrowth (không phụ thuộc slider)
+            float progress = _growth.GetProgress();
 
+            // Nếu cây chưa được Initialize (ticks = 0) → progress = 0 → seedSprite, OK
+
+            Sprite target;
             if (progress >= 1f)
-            {
-                _sr.sprite = harvestableSprite;
-            }
+                target = harvestableSprite;
             else if (progress > 0.4f)
-            {
-                _sr.sprite = growingSprite;
-            }
+                target = growingSprite;
             else
-            {
-                _sr.sprite = seedSprite;
-            }
+                target = seedSprite;
+
+            // Chỉ gán khi thực sự thay đổi để tránh dirty mark liên tục
+            if (_sr.sprite != target)
+                _sr.sprite = target;
         }
     }
 }

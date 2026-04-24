@@ -35,6 +35,14 @@ namespace FarmPuzzle.FarmSystem.Crop
         public bool IsHarvestable => _isHarvestable && _currentNeed == CropNeedType.None; 
         public CropNeedType CurrentNeed => _currentNeed;
 
+        /// <summary>Trả về tiến trình lớn (0→1) để CropDisplay đọc trực tiếp, không cần Slider.</summary>
+        public float GetProgress()
+        {
+            if (_totalGrowthSeconds <= 0) return 0f;
+            double elapsed = (DateTime.UtcNow - _plantedTime).TotalSeconds;
+            return Mathf.Clamp01((float)(elapsed + _bonusSeconds) / _totalGrowthSeconds);
+        }
+
         public void Initialize(CropDataModel data, long plantedTicks)
         {
             _cropData = data;
