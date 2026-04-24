@@ -2,13 +2,19 @@ using UnityEngine;
 
 namespace FarmPuzzle.Meta
 {
+    public enum QuestRequestType
+    {
+        Plant,
+        Harvest,
+        Sell
+    }
+
     [CreateAssetMenu(fileName = "NewQuestData", menuName = "FarmPuzzle/QuestData")]
     public class QuestDataSO : ScriptableObject
     {
         [Header("Thông tin mục tiêu")]
         public string questID;
         public string targetItemID; // Nhập "Apple", "Orange", "Radish"...
-        public Sprite questIcon;    // Hình ảnh hiển thị trên UI
         [TextArea] public string description;
 
         [Header("Yêu cầu số lượng")]
@@ -16,8 +22,5 @@ namespace FarmPuzzle.Meta
 
         [Header("Phần thưởng")]
         public int rewardGold;
-
-        [Header("Cấu hình")]
-        public bool isRepeatable = true;
     }
 }

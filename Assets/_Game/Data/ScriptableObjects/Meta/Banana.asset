@@ -14,7 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FarmPuzzle.Meta.QuestDataSO
   questID: Banana
   targetItemID: Banana
-  questIcon: {fileID: 7381965769198725172, guid: 2d0fb5d4264010e44b7ed237c734e6a7, type: 3}
   description: 
   targetAmount: 16
   rewardGold: 43

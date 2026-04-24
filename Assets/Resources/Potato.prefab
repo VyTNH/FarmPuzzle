@@ -576,7 +576,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 5
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: 886f0c77661d5fc4eba17989285f90ec, type: 3}
+  m_Sprite: {fileID: 8350771306186573681, guid: 59da31fc8f95c1b4887810e477560d47, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -598,8 +598,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 699a84208851cb542ace7c4674a644f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FarmPuzzle.FarmSystem.Visual.CropDisplay
-  seedSprite: {fileID: 21300000, guid: 886f0c77661d5fc4eba17989285f90ec, type: 3}
-  growingSprite: {fileID: 21300000, guid: 886f0c77661d5fc4eba17989285f90ec, type: 3}
+  seedSprite: {fileID: -1091699285454546756, guid: 98547fdda226b604e8641b91797e9e0b, type: 3}
+  growingSprite: {fileID: 8350771306186573681, guid: 59da31fc8f95c1b4887810e477560d47, type: 3}
   harvestableSprite: {fileID: 21300000, guid: 886f0c77661d5fc4eba17989285f90ec, type: 3}
 --- !u!114 &7271953769526824852
 MonoBehaviour:

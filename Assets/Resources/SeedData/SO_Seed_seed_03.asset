@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SO_Seed_seed_03
   m_EditorClassIdentifier: Assembly-CSharp::SeedItemSO
   seedID: seed_03
-  seedName: "H\u1EA1t Gi\u1ED1ng B\u1EAFp C\u1EA3i"
-  inventoryIcon: {fileID: 2223489851949879710, guid: 72883190b67b2c246b6565ea49f66406, type: 3}
+  seedName: "B\u1EAFp C\u1EA3i"
+  inventoryIcon: {fileID: -7929573705748365823, guid: 31381b00d8978fc4a9fb1475f7b95603, type: 3}
   buyPrice: 25
   cropData: {fileID: 11400000, guid: f0698329ee226bc44a1cef85071dc858, type: 2}

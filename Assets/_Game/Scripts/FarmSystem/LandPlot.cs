@@ -229,9 +229,10 @@ public class LandPlot : MonoBehaviour
         {
             int yieldBoosted = currentCrop.yieldAmount * 10;
             DataManager.Instance.AddItem(currentCrop.productID, yieldBoosted);
+            if (FarmPuzzle.Meta.QuestManager.Instance != null)
+                FarmPuzzle.Meta.QuestManager.Instance.UpdateProgress(currentCrop.productID, yieldBoosted);
+                
             // [QUAN TRỌNG] Lưu ngay vào ô cứng (SQLite) để tránh mất dữ liệu khi Tắt game đột ngột!
-            // Tiến độ nhiệm vụ (Quest) CHỈ được cập nhật khi xóa hàng trong Tetris (TetrisManager.CheckLines)
-            // KHÔNG gọi QuestManager.UpdateProgress ở đây để tránh sai cơ chế game!
             DataManager.Instance.CommitSessionInventory();
         }
         ClearPlot();

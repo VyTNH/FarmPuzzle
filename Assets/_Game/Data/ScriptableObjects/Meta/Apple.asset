@@ -14,7 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FarmPuzzle.Meta.QuestDataSO
   questID: Apple
   targetItemID: Apple
-  questIcon: {fileID: 5618425121519575913, guid: cb036cd5b0c02134cbff0c2ce7567da5, type: 3}
   description: 
   targetAmount: 7
   rewardGold: 39

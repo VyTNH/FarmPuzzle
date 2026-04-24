@@ -189,54 +189,15 @@ namespace FarmPuzzle.UI
             if (_inventoryPanel == null || global::DataManager.Instance == null) return;
             if (global::DataManager.Instance.CurrentPlayer == null) return;
 
-            // Bước 1: Tìm SlotContainer (Giờ tìm chữ Content của ScrollView)
+            // Bước 1: Tìm SlotContainer
             Transform container = FindChildRecursive(_inventoryPanel, "SlotContainer");
             if (container == null) container = FindChildRecursive(_inventoryPanel, "Content");
             if (container == null) container = FindChildRecursive(_inventoryPanel, "BackGround");
             if (container == null) return;
 
-            // Bước 2: Fix SlotContainer RectTransform — anchor left-edge, full height, no y-overflow
             RectTransform containerRect = container.GetComponent<RectTransform>();
-            if (containerRect != null)
-            {
-                // Anchor left-edge, full height = stretch to BackGround height
-                containerRect.anchorMin        = new Vector2(0f, 0f);
-                containerRect.anchorMax        = new Vector2(0f, 1f);
-                containerRect.pivot            = new Vector2(0f, 0.5f);
-                containerRect.anchoredPosition = new Vector2(0f, 0f);
-                containerRect.sizeDelta        = new Vector2(containerRect.sizeDelta.x, 0f);
-            }
 
-            // Bước 3: Fix BackGround — swap Mask → RectMask2D + fix Image alpha
-            Transform bgTr = container.parent;
-            if (bgTr != null)
-            {
-                // Swap Mask → RectMask2D (RectMask2D ổn định hơn trong setup này)
-                Mask oldMask = bgTr.GetComponent<Mask>();
-                if (oldMask != null && oldMask.enabled)
-                {
-                    oldMask.enabled = false;
-                    if (bgTr.GetComponent<RectMask2D>() == null)
-                        bgTr.gameObject.AddComponent<RectMask2D>();
-                }
-
-                // ⚠️ FIX: RectMask2D dùng Image để tính clip region.
-                // Nếu Image.alpha = 0 → clip area không render đúng → slot bị ẩn.
-                // Phải ensure Image.alpha = 1 (có thể dùng alpha=0 trên Image component riêng nếu muốn ẩn visual).
-                Image bgImg = bgTr.GetComponent<Image>();
-                if (bgImg != null)
-                {
-                    bgImg.enabled = true;
-                    if (bgImg.color.a < 0.01f)
-                        bgImg.color = new Color(bgImg.color.r, bgImg.color.g, bgImg.color.b, 1f);
-                }
-
-                // Reset scroll position về đầu
-                ScrollRect scrollRect = bgTr.parent?.GetComponent<ScrollRect>();
-                if (scrollRect != null) scrollRect.horizontalNormalizedPosition = 0f;
-            }
-
-            // Bước 4: Load prefab từ Resources/UI/InventorySlot.prefab
+            // Bước 2: Load prefab từ Resources/UI/InventorySlot.prefab
             if (_slotPrefab == null)
                 _slotPrefab = slotPrefabOverride != null
                     ? slotPrefabOverride
@@ -248,8 +209,7 @@ namespace FarmPuzzle.UI
                 return;
             }
 
-            // Bước 5: Đọc DB và build slots
-            // (Đọc từ bảng thật hoặc qua DataManager.GetItemAmount tuỳ theo hiện thực Session)
+            // Bước 3: Đọc DB và build slots
             var sessionItems = global::DataManager.Instance.DB
                 .Table<Core.Database.InventoryModel>()
                 .Where(i => i.PlayerID == global::DataManager.Instance.CurrentPlayer.PlayerID)
@@ -257,11 +217,10 @@ namespace FarmPuzzle.UI
 
             var activeSlotNames = new System.Collections.Generic.HashSet<string>();
 
-            // Lấy trực tiếp quantity từ SessionInventory
             foreach (var dbItem in sessionItems)
             {
                 int qty = global::DataManager.Instance.GetItemAmount(dbItem.ItemID);
-                if (qty <= 0 && dbItem.ItemID != "tool_watercan" && dbItem.ItemID != "tool_hoe") continue; // Nước và cuốc không bao giờ mất
+                if (qty <= 0 && dbItem.ItemID != "tool_watercan" && dbItem.ItemID != "tool_hoe") continue;
 
                 string slotName = "Slot_" + dbItem.ItemID;
                 activeSlotNames.Add(slotName);
@@ -271,30 +230,12 @@ namespace FarmPuzzle.UI
 
                 if (existingSlot == null)
                 {
-                    // Tạo slot mới
+                    // Tạo slot mới — giữ nguyên toàn bộ layout từ Prefab, không override RectTransform
                     slotGo = Instantiate(_slotPrefab, container);
                     slotGo.SetActive(true);
                     slotGo.name = slotName;
 
-                    RectTransform slotRect = slotGo.GetComponent<RectTransform>();
-                    // Fix anchor về bottom-left để HorizontalLayoutGroup tính đúng từ cạnh trái
-                    slotRect.anchorMin = new Vector2(0f, 0f);
-                    slotRect.anchorMax = new Vector2(0f, 0f);
-                    slotRect.pivot     = new Vector2(0f, 0f);
-                    if (slotRect.sizeDelta.y <= 0)
-                        slotRect.sizeDelta = new Vector2(slotRect.sizeDelta.x > 0 ? slotRect.sizeDelta.x : 100f, 90f);
-
-                    // Fix Icon rect
-                    RectTransform iconRect = slotGo.transform.Find("Icon")?.GetComponent<RectTransform>();
-                    if (iconRect != null)
-                    {
-                        iconRect.anchorMin = new Vector2(0f, 0f);
-                        iconRect.anchorMax = new Vector2(1f, 1f);
-                        iconRect.offsetMin = new Vector2(5f, 28f);
-                        iconRect.offsetMax = new Vector2(-5f, -5f);
-                    }
-
-                    // Gán Sprite
+                    // Gán Sprite icon — tìm Image đầu tiên con của "Icon"
                     Image imgComp = slotGo.transform.Find("Icon")?.GetComponent<Image>();
                     if (imgComp != null)
                     {
@@ -306,26 +247,22 @@ namespace FarmPuzzle.UI
 
                         imgComp.sprite = finalSprite;
                         imgComp.color  = finalSprite != null ? Color.white : new Color(0.8f, 0.8f, 0.8f, 1f);
-                        
+
                         // ===== DRAGGABLE TOOL SETUP =====
                         var draggable = imgComp.gameObject.GetComponent<FarmPuzzle.UI.DraggableTool>();
                         if (draggable == null) draggable = imgComp.gameObject.AddComponent<FarmPuzzle.UI.DraggableTool>();
-                        
+
                         draggable.isHarvestTool = false;
                         draggable.toolType = FarmPuzzle.FarmSystem.Crop.CropNeedType.None;
                         draggable.seedData = null;
 
-                        if (dbItem.ItemID == ProjectPaths.ID_TOOL_HOE) {
-                            draggable.isHarvestTool = true; 
-                        } else if (dbItem.ItemID == ProjectPaths.ID_TOOL_WATERCAN) {
-                            draggable.toolType = FarmPuzzle.FarmSystem.Crop.CropNeedType.Water;
-                        } else if (dbItem.ItemID == ProjectPaths.ID_TOOL_PEST) {
-                            draggable.toolType = FarmPuzzle.FarmSystem.Crop.CropNeedType.Pest;
-                        } else if (dbItem.ItemID == ProjectPaths.ID_ITEM_FERTILIZER) {
-                            draggable.toolType = FarmPuzzle.FarmSystem.Crop.CropNeedType.Fertilizer;
-                        } else if (dbItem.ItemID.StartsWith(ProjectPaths.PREFIX_SEED)) {
-                            draggable.seedData = Resources.Load<SeedItemSO>(ProjectPaths.RS_PREFIX_SEED_SO + dbItem.ItemID);
-                        } else {
+                        if      (dbItem.ItemID == ProjectPaths.ID_TOOL_HOE)      { draggable.isHarvestTool = true; }
+                        else if (dbItem.ItemID == ProjectPaths.ID_TOOL_WATERCAN) { draggable.toolType = FarmPuzzle.FarmSystem.Crop.CropNeedType.Water; }
+                        else if (dbItem.ItemID == ProjectPaths.ID_TOOL_PEST)     { draggable.toolType = FarmPuzzle.FarmSystem.Crop.CropNeedType.Pest; }
+                        else if (dbItem.ItemID == ProjectPaths.ID_ITEM_FERTILIZER) { draggable.toolType = FarmPuzzle.FarmSystem.Crop.CropNeedType.Fertilizer; }
+                        else if (dbItem.ItemID.StartsWith(ProjectPaths.PREFIX_SEED)) { draggable.seedData = Resources.Load<SeedItemSO>(ProjectPaths.RS_PREFIX_SEED_SO + dbItem.ItemID); }
+                        else
+                        {
                             if (Application.isPlaying) Destroy(draggable);
                             else DestroyImmediate(draggable);
                         }
@@ -338,8 +275,8 @@ namespace FarmPuzzle.UI
                 }
 
                 // Cập nhật text số lượng
-                string qtyStr = qty.ToString();
-                if (dbItem.ItemID == ProjectPaths.ID_TOOL_WATERCAN || dbItem.ItemID == ProjectPaths.ID_TOOL_HOE) qtyStr = "∞";
+                string qtyStr = (dbItem.ItemID == ProjectPaths.ID_TOOL_WATERCAN || dbItem.ItemID == ProjectPaths.ID_TOOL_HOE)
+                    ? "∞" : qty.ToString();
 
                 foreach (UnityEngine.UI.Text t in slotGo.GetComponentsInChildren<UnityEngine.UI.Text>(true))
                     if (t.name == "txt_count" || t.name.StartsWith("txt_count"))
@@ -350,7 +287,7 @@ namespace FarmPuzzle.UI
             foreach (Transform child in container)
                 if (!activeSlotNames.Contains(child.name)) child.gameObject.SetActive(false);
 
-            // Force layout rebuild
+            // Force layout rebuild để LayoutGroup cập nhật vị trí
             if (containerRect != null)
                 LayoutRebuilder.ForceRebuildLayoutImmediate(containerRect);
         }

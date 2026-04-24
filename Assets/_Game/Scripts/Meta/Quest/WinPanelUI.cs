@@ -21,8 +21,8 @@ namespace FarmPuzzle.Meta
 
         private void OnEnable()
         {
-            // Nghe tín hiệu thắng từ hệ thống Quest trung gian
-            QuestEvents.OnLevelWin += HandleWinDisplay;
+            // Nghe tín hiệu thắng từ QuestTestUI
+            QuestTestUI.OnTestLevelWin += HandleWinDisplay;
 
             if (continueButton != null) continueButton.onClick.AddListener(OnContinueClick);
             if (mainMenuButton != null) mainMenuButton.onClick.AddListener(OnMainMenuClick);
@@ -30,7 +30,7 @@ namespace FarmPuzzle.Meta
 
         private void OnDisable()
         {
-            QuestEvents.OnLevelWin -= HandleWinDisplay;
+            QuestTestUI.OnTestLevelWin -= HandleWinDisplay;
             
             if (continueButton != null) continueButton.onClick.RemoveListener(OnContinueClick);
             if (mainMenuButton != null) mainMenuButton.onClick.RemoveListener(OnMainMenuClick);
