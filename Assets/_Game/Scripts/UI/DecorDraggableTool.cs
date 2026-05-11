@@ -55,7 +55,11 @@ namespace FarmPuzzle.UI
 
         public void OnBeginDrag(PointerEventData eventData)
         {
-            if (_itemData == null) return;
+            if (_itemData == null)
+            {
+                Debug.LogError("[DecorDrag] OnBeginDrag: _itemData == null! Gọi SetupItem() trước khi sử dụng.");
+                return;
+            }
             _isDragging = true;
 
             // Chặn kéo camera trong lúc kéo item
@@ -63,56 +67,65 @@ namespace FarmPuzzle.UI
 
             // Tìm component Grid trong Game
             if (_mainGrid == null && GridManager.Instance != null)
+            {
                 _mainGrid = GridManager.Instance.GetComponent<Grid>();
+                if (_mainGrid == null)
+                    Debug.LogError("[DecorDrag] Không tìm thấy component Grid trên GridManager! Hãy gắn Grid component vào GameObject 'Grid Manager'.");
+                else
+                    Debug.Log("[DecorDrag] Tìm thấy Grid: " + _mainGrid.name);
+            }
+            else if (_mainGrid == null)
+            {
+                Debug.LogError("[DecorDrag] GridManager.Instance == null! Đảm bảo GridManager có trong scene.");
+            }
 
             // Tạo Shadow Object nằm trong Scene (World Space)
             _shadowObject = new GameObject($"Shadow_{_itemData.DecorID}");
             _shadowRenderer = _shadowObject.AddComponent<SpriteRenderer>();
+            
+            if (_decorSprite == null)
+            {
+                _decorSprite = DecorationManager.Instance?.GetSprite(_itemData.DecorID);
+                Debug.LogWarning($"[DecorDrag] _decorSprite null khi BeginDrag, thử lấy lại: {(_decorSprite != null ? "Tìm thấy" : "Vẫn null! Kiểm tra allDecorSprites trong DecorationManager Inspector")}");
+            }
             _shadowRenderer.sprite = _decorSprite;
-            
-            // Material Transparent, Color nửa mờ
             _shadowRenderer.color = new Color(1f, 1f, 1f, 0.5f);
-            
-            // Chỉnh Pivot (do gốc tọa độ đã bottom-center nên shadow Renderer không cần offset quá phức tạp)
-            // Tuy nhiên Decor thì cần dịch Y lên để leo cầu thang (HeightLevel)
-            _shadowRenderer.sortingOrder = 30000; // Đẩy lên trên cùng để dễ nhìn
+            _shadowRenderer.sortingOrder = 30000;
+
+            Debug.Log($"[DecorDrag] Bắt đầu kéo: {_itemData.Name} | Sprite: {(_decorSprite != null ? _decorSprite.name : "NULL")} | Grid: {(_mainGrid != null ? "OK" : "NULL")}");
         }
 
         public void OnDrag(PointerEventData eventData)
         {
-            if (!_isDragging || _shadowObject == null || _mainGrid == null) return;
+            if (!_isDragging || _shadowObject == null) return;
 
-            // Soi tia raycast xuống Plane mặt đất / Isometric Grid Z=0
+            if (_mainGrid == null)
+            {
+                Debug.LogWarning("[DecorDrag] OnDrag: _mainGrid null, shadow sẽ không di chuyển theo chuột!");
+                return;
+            }
+
             Vector3 worldPos = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, -Camera.main.transform.position.z));
-            
-            // Tính toán ra Cell Position chính xác trên hệ tọa độ Isometric (Grid Component)
             Vector3Int cellPos = _mainGrid.WorldToCell(worldPos);
 
-            // Giới hạn trong kích thước GridW x GridH (VD: 50x50) 
             int maxW = GridManager.Instance.gridWidth;
             int maxH = GridManager.Instance.gridHeight;
             if (cellPos.x >= 0 && cellPos.x < maxW && cellPos.y >= 0 && cellPos.y < maxH)
             {
-                // Cho phép kéo thả
                 Vector3 centerPos = _mainGrid.GetCellCenterWorld(cellPos);
-                
-                // Đọc xem ô này đang cao từng nào
                 int hLvl = DecorationManager.Instance.GetHeightLevelAt(cellPos.x, cellPos.y);
                 float offsetForStack = DecorationManager.Instance.stackHeightOffset * hLvl;
-                
-                // Cập nhật vị trí bóng mờ
                 _shadowObject.transform.position = new Vector3(centerPos.x, centerPos.y + offsetForStack, 0);
 
-                // Nếu là khối chặn -> hiển thị đèn Đỏ, cấm đặt
                 if (DecorationManager.Instance.CanStackAt(cellPos.x, cellPos.y))
-                    _shadowRenderer.color = new Color(0.5f, 1f, 0.5f, 0.6f); // Xanh mờ
+                    _shadowRenderer.color = new Color(0.5f, 1f, 0.5f, 0.6f);
                 else
-                    _shadowRenderer.color = new Color(1f, 0.5f, 0.5f, 0.6f); // Đỏ mờ
+                    _shadowRenderer.color = new Color(1f, 0.5f, 0.5f, 0.6f);
             }
             else
             {
-                _shadowRenderer.color = new Color(1f, 0f, 0f, 0.2f); // Qua biên giới -> đỏ tịt
-                _shadowObject.transform.position = new Vector3(worldPos.x, worldPos.y, 0f); // Fallback
+                _shadowRenderer.color = new Color(1f, 0f, 0f, 0.2f);
+                _shadowObject.transform.position = new Vector3(worldPos.x, worldPos.y, 0f);
             }
         }
 
@@ -125,43 +138,54 @@ namespace FarmPuzzle.UI
 
             if (_shadowObject != null)
             {
-                // Lúc thả chuột, lấy chính tọa độ World ném ngược lại hàm tính
                 Vector3 finalWorld = _shadowObject.transform.position;
                 Destroy(_shadowObject);
+                _shadowObject = null;
 
-                if (_mainGrid != null)
+                if (_mainGrid == null)
                 {
-                    // Lần nữa tính xem con trỏ / vật quy đổi Grid X,Y
-                    // Do lúc kéo ta đẩy cao Y lên vì stack (tạo ảo ảnh mắt), ta nên dùng mouse real_world pos
-                    Vector3 worldPoint = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, -Camera.main.transform.position.z));
-                    Vector3Int cellPos = _mainGrid.WorldToCell(worldPoint);
-                    
-                    int maxW = GridManager.Instance.gridWidth;
-                    int maxH = GridManager.Instance.gridHeight;
+                    Debug.LogError("[DecorDrag] OnEndDrag: _mainGrid null, không thể xác định vị trí thả!");
+                    return;
+                }
 
-                    // Nếu lọt trong map & có thể đặt lên
-                    if (cellPos.x >= 0 && cellPos.x < maxW && cellPos.y >= 0 && cellPos.y < maxH)
+                Vector3 worldPoint = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, -Camera.main.transform.position.z));
+                Vector3Int cellPos = _mainGrid.WorldToCell(worldPoint);
+                int maxW = GridManager.Instance.gridWidth;
+                int maxH = GridManager.Instance.gridHeight;
+
+                Debug.Log($"[DecorDrag] Thả tại cellPos={cellPos} | InBounds={cellPos.x >= 0 && cellPos.x < maxW && cellPos.y >= 0 && cellPos.y < maxH} | CanStack={DecorationManager.Instance?.CanStackAt(cellPos.x, cellPos.y)}");
+
+                if (cellPos.x >= 0 && cellPos.x < maxW && cellPos.y >= 0 && cellPos.y < maxH)
+                {
+                    if (DecorationManager.Instance.CanStackAt(cellPos.x, cellPos.y))
                     {
-                        if (DecorationManager.Instance.CanStackAt(cellPos.x, cellPos.y))
-                        {
-                            Vector3 centerBase = _mainGrid.GetCellCenterWorld(cellPos);
-                            // Gọi Popup Verify!
-                            if (DecorConfirmPopup.Instance == null)
-                            {
-                                var popups = Resources.FindObjectsOfTypeAll<DecorConfirmPopup>();
-                                if (popups.Length > 0) DecorConfirmPopup.Instance = popups[0];
-                            }
+                        Vector3 centerBase = _mainGrid.GetCellCenterWorld(cellPos);
 
-                            if (DecorConfirmPopup.Instance != null)
-                            {
-                                DecorConfirmPopup.Instance.Show(_itemData.DecorID, _itemData.Name, _itemData.BuyPrice, cellPos.x, cellPos.y, centerBase);
-                            }
-                            else
-                            {
-                                Debug.LogError("Không tìm thấy DecorConfirmPopup. Xóa cái panel đó và dùng Mũi tên Tools > Tự động vẽ lại UI nhé.");
-                            }
+                        if (DecorConfirmPopup.Instance == null)
+                        {
+                            var popups = Resources.FindObjectsOfTypeAll<DecorConfirmPopup>();
+                            if (popups.Length > 0) DecorConfirmPopup.Instance = popups[0];
+                            Debug.LogWarning($"[DecorDrag] Tìm kiếm DecorConfirmPopup: tìm được {popups.Length} instance.");
+                        }
+
+                        if (DecorConfirmPopup.Instance != null)
+                        {
+                            Debug.Log($"[DecorDrag] Hiển popup xác nhận: {_itemData.Name} tại ({cellPos.x},{cellPos.y}) worldPos={centerBase}");
+                            DecorConfirmPopup.Instance.Show(_itemData.DecorID, _itemData.Name, _itemData.BuyPrice, cellPos.x, cellPos.y, centerBase);
+                        }
+                        else
+                        {
+                            Debug.LogError("[DecorDrag] Không tìm thấy DecorConfirmPopup trong scene! Kiểm tra: 1) Popup có trong Hierarchy 2) Script DecorConfirmPopup được gắn 3) SetActive(false) không dùng Destroy.");
                         }
                     }
+                    else
+                    {
+                        Debug.LogWarning($"[DecorDrag] Vị trí ({cellPos.x},{cellPos.y}) không cho phép đặt chồng (có mái nhọn bên trên).");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"[DecorDrag] Thả ngoài giới hạn map: cellPos={cellPos}");
                 }
             }
         }

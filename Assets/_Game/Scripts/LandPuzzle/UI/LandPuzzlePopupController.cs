@@ -153,7 +153,24 @@ namespace FarmPuzzle.LandPuzzle.UI
 
         private void HidePopup()
         {
-            if (_confirmPopupPanel != null) _confirmPopupPanel.SetActive(false);
+            if (_confirmPopupPanel != null)
+            {
+                // FIX: Destroy() là async, SetActive(false) xảy ra ngay → OnDisable của PanelSimpleCasual crash.
+                // Giải pháp đúng: Dùng Reflection set otherPanels = [] trước khi SetActive
+                var panelSimple = _confirmPopupPanel.GetComponent<LayerLab.PanelSimpleCasual>();
+                if (panelSimple != null)
+                {
+                    var field = panelSimple.GetType().GetField(
+                        "otherPanels",
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    if (field != null)
+                    {
+                        field.SetValue(panelSimple, new GameObject[0]); // Ép mảng rỗng → OnDisable không crash
+                        Debug.Log("[LandPuzzlePopup] Đã khởi tạo otherPanels = [] cho PanelSimpleCasual.");
+                    }
+                }
+                _confirmPopupPanel.SetActive(false);
+            }
             _pendingPlot = null;
         }
     }

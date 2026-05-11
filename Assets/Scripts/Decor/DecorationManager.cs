@@ -127,16 +127,36 @@ namespace FarmPuzzle.Decor
 
         public DecorationItem PlaceDecor(string decorID, int gx, int gy, Vector3 worldPos)
         {
-            if (DataManager.Instance?.DB == null) return null;
+            // ── Debug: Kiểm tra từng điều kiện để trace lỗi decor không hiện ──
+            Debug.Log($"[Deco:PlaceDecor] Bắt đầu đặt decorID='{decorID}' tại grid({gx},{gy}) worldPos={worldPos}");
 
-            if (!CanStackAt(gx, gy))
+            if (DataManager.Instance?.DB == null)
             {
-                Debug.LogWarning($"[Deco] Vị trí ({gx},{gy}) không cho phép xếp chồng do trúng vật cản có mái nhọn.");
+                Debug.LogError("[Deco:PlaceDecor] DataManager.DB == null! Không thể ghi DB.");
                 return null;
             }
 
+            if (DataManager.Instance.CurrentPlayer == null)
+            {
+                Debug.LogError("[Deco:PlaceDecor] CurrentPlayer == null! Người chơi chưa đăng nhập.");
+                return null;
+            }
+
+            if (!CanStackAt(gx, gy))
+            {
+                Debug.LogWarning($"[Deco:PlaceDecor] Vị trí ({gx},{gy}) không cho phép xếp chồng (mái nhọn bên trên).");
+                return null;
+            }
+
+            // Kiểm tra xem decorID có tồn tại trong bảng DecorItemModel chưa
             var def = DataManager.Instance.DB.Table<DecorItemModel>().FirstOrDefault(d => d.DecorID == decorID);
-            if (def == null) return null;
+            if (def == null)
+            {
+                Debug.LogError($"[Deco:PlaceDecor] Không tìm thấy DecorItemModel với DecorID='{decorID}' trong DB! " +
+                               $"Kiểm tra: 1) ShopManager đã gọi SeedDecorItemsToDB() chưa, 2) DecorID có đúng không.");
+                return null;
+            }
+            Debug.Log($"[Deco:PlaceDecor] Tìm thấy def: Name={def.Name}, IsFlatTop={def.IsFlatTop}");
 
             string k = Key(gx, gy);
             int lvl = _stackMap.ContainsKey(k) ? _stackMap[k] : 0;
@@ -152,13 +172,14 @@ namespace FarmPuzzle.Decor
                 HeightLevel = lvl
             };
             DataManager.Instance.DB.Insert(rec);
-            
-            // Cập nhật đỉnh lưới
+            Debug.Log($"[Deco:PlaceDecor] Đã Insert DB: PlayerID={rec.PlayerID}, ID={rec.Id}, HeightLevel={lvl}");
+
             _stackMap[k] = lvl + 1;
             _topDecorMap[k] = decorID;
 
-            Debug.Log($"<color=green>[Deco]</color> Dat '{decorID}' tai ({gx},{gy}) tang {lvl}");
-            return DoSpawn(rec);
+            var spawned = DoSpawn(rec);
+            Debug.Log($"[Deco:PlaceDecor] DoSpawn trả về: {(spawned != null ? spawned.gameObject.name : "NULL — XEM LOG DOSPAWN BÊN DƯỚI")}");
+            return spawned;
         }
 
         public void RemoveDecor(int recordId)
@@ -226,21 +247,29 @@ namespace FarmPuzzle.Decor
 
         DecorationItem DoSpawn(DecorRecordModel rec)
         {
+            Debug.Log($"[Deco:DoSpawn] Bắt đầu spawn: DecorID={rec.DecorID} tại WorldPos=({rec.X},{rec.Y}) GridPos=({rec.GridX},{rec.GridY}) HeightLvl={rec.HeightLevel}");
+
             GameObject basePrefab = decoPrefab;
             if (basePrefab == null)
             {
+                // ⚠️ CẢNH BÁO: decoPrefab chưa được gán trong Inspector!
+                // Tạo tạm một GameObject nhưng object này KHÔNG có Sprite và KHÔNG hiển thị gì!
+                Debug.LogError("[Deco:DoSpawn] decoPrefab == NULL! Hãy gán 'Deco Prefab' vào Inspector của DecorationManager. " +
+                               "Decor sẽ spawn nhưng không có visual!");
                 basePrefab = new GameObject("Deco_Root_Template");
-                basePrefab.SetActive(false);
+                basePrefab.AddComponent<SpriteRenderer>(); // Thêm SR để có thể hiển thị sprite
             }
 
             var go = Instantiate(basePrefab, new Vector3(rec.X, rec.Y, 0f), Quaternion.identity, transform);
             go.SetActive(true);
             go.name = $"Deco_{rec.DecorID}_{rec.GridX}x{rec.GridY}_h{rec.HeightLevel}";
+            Debug.Log($"[Deco:DoSpawn] Instantiate thành công: {go.name} tại WorldPos=({rec.X:F2},{rec.Y:F2})");
 
             // Vá lỗi: Nếu Prefab user tự chế bị thiếu Deco_Visual -> Code tự đẻ ra luôn!
             Transform visual = go.transform.Find("Deco_Visual");
             if (visual == null)
             {
+                Debug.LogWarning($"[Deco:DoSpawn] Prefab '{basePrefab.name}' thiếu child 'Deco_Visual' → tự tạo.");
                 var vGo = new GameObject("Deco_Visual");
                 vGo.transform.SetParent(go.transform, false);
                 vGo.AddComponent<SpriteRenderer>();
@@ -248,15 +277,27 @@ namespace FarmPuzzle.Decor
             }
 
             var item = go.GetComponent<DecorationItem>() ?? go.AddComponent<DecorationItem>();
-            // Add sorting group if missing
             if (go.GetComponent<UnityEngine.Rendering.SortingGroup>() == null)
                 go.AddComponent<UnityEngine.Rendering.SortingGroup>();
 
+            // Tìm sprite theo tên DecorID trong cache
             _spriteCache.TryGetValue(rec.DecorID, out Sprite sprite);
-            if (sprite == null && _spriteCache.Count > 0) sprite = _spriteCache.Values.First();
+            if (sprite == null)
+            {
+                Debug.LogWarning($"[Deco:DoSpawn] Không tìm thấy sprite cho DecorID='{rec.DecorID}' trong _spriteCache ({_spriteCache.Count} entries). " +
+                                 $"Các key có trong cache: [{string.Join(", ", _spriteCache.Keys)}]. " +
+                                 $"Sprite trong Inspector 'allDecorSprites' phải có tên TRÙNG với DecorID!");
+                // Fallback: lấy sprite đầu tiên để vẫn hiển thị cái gì đó
+                if (_spriteCache.Count > 0) sprite = _spriteCache.Values.First();
+            }
+            else
+            {
+                Debug.Log($"[Deco:DoSpawn] Tìm thấy sprite: '{sprite.name}' cho DecorID='{rec.DecorID}'");
+            }
 
             item.Setup(rec, sprite, stackHeightOffset);
             _spawnedItems[rec.Id] = item;
+            Debug.Log($"[Deco:DoSpawn] ✅ Hoàn thành spawn item: {go.name} | Sprite={(sprite != null ? sprite.name : "NULL")} | Active={go.activeSelf}");
             return item;
         }
 

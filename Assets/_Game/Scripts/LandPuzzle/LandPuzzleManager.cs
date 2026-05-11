@@ -60,39 +60,116 @@ namespace FarmPuzzle.LandPuzzle
 
         private void BuildExitButton()
         {
-            if (_puzzlePanel == null) return;
-            Transform existing = _puzzlePanel.transform.Find("Btn_ExitLandPuzzle");
-            if (existing != null) return;
+            if (_puzzlePanel == null)
+            {
+                Debug.LogError("[LandPuzzle] BuildExitButton: _puzzlePanel == null! Gán Puzzle_UI_Panel vào Inspector.");
+                return;
+            }
 
-            GameObject btnObj = new GameObject("Btn_ExitLandPuzzle", typeof(RectTransform), typeof(UnityEngine.UI.Image), typeof(UnityEngine.UI.Button));
-            btnObj.transform.SetParent(_puzzlePanel.transform, false);
-            
+            // ── Tìm Canvas đúng để đặt nút (ưu tiên Canvas_LandPuzzle) ──
+            Canvas targetCanvas = null;
+
+            // Ưu tiên 1: Canvas_LandPuzzle theo tên — đây là Canvas chuyên cho puzzle UI
+            var puzzleCanvasGO = GameObject.Find("Canvas_LandPuzzle");
+            if (puzzleCanvasGO != null)
+                targetCanvas = puzzleCanvasGO.GetComponent<Canvas>();
+
+            // Ưu tiên 2: Canvas cha gần nhất không phải WorldSpace
+            if (targetCanvas == null)
+            {
+                Canvas[] parents = _puzzlePanel.GetComponentsInParent<Canvas>(true);
+                foreach (var c in parents)
+                {
+                    if (c.renderMode != RenderMode.WorldSpace)
+                    { targetCanvas = c; break; }
+                }
+            }
+
+            // Ưu tiên 3: Canvas anh em (sibling) của _puzzlePanel
+            if (targetCanvas == null && _puzzlePanel.transform.parent != null)
+            {
+                foreach (Transform sibling in _puzzlePanel.transform.parent)
+                {
+                    var c = sibling.GetComponent<Canvas>();
+                    if (c != null && c.renderMode != RenderMode.WorldSpace)
+                    { targetCanvas = c; break; }
+                }
+            }
+
+            if (targetCanvas == null)
+            {
+                Debug.LogError("[LandPuzzle] Không tìm được Canvas! Đặt tên canvas puzzle thành 'Canvas_LandPuzzle'.");
+                return;
+            }
+
+            // Kiểm tra nút đã tồn tại trong Canvas chưa
+            var existingT = targetCanvas.transform.Find("Btn_ExitLandPuzzle");
+            if (existingT != null)
+            {
+                existingT.gameObject.SetActive(true);
+                existingT.SetAsLastSibling();
+                return;
+            }
+
+            // ★ BắT BUỘC: Canvas phải có GraphicRaycaster thì button mới nhận được click!
+            if (targetCanvas.GetComponent<UnityEngine.UI.GraphicRaycaster>() == null)
+            {
+                targetCanvas.gameObject.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+                Debug.Log($"[LandPuzzle] Đã thêm GraphicRaycaster vào '{targetCanvas.name}' → button mới nhận được click!");
+            }
+
+            Debug.Log($"[LandPuzzle] Tạo nút thoát trong Canvas: '{targetCanvas.name}' (RenderMode={targetCanvas.renderMode})");
+
+            // Tạo nút
+            GameObject btnObj = new GameObject("Btn_ExitLandPuzzle",
+                typeof(RectTransform),
+                typeof(UnityEngine.UI.Image),
+                typeof(UnityEngine.UI.Button));
+            btnObj.transform.SetParent(targetCanvas.transform, false);
+            btnObj.transform.SetAsLastSibling();
+
+            // Vị trí: Góc trên PHẢI
             RectTransform rt = btnObj.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(1, 1);
-            rt.anchorMax = new Vector2(1, 1);
-            rt.pivot = new Vector2(1, 1);
-            rt.anchoredPosition = new Vector2(-20, -20);
-            rt.sizeDelta = new Vector2(60, 60);
+            rt.anchorMin        = new Vector2(1f, 1f);
+            rt.anchorMax        = new Vector2(1f, 1f);
+            rt.pivot            = new Vector2(1f, 1f);
+            rt.anchoredPosition = new Vector2(-16f, -200f); // Pos Y = -200 theo yêu cầu
+            rt.sizeDelta        = new Vector2(70f, 70f);
 
-            var img = btnObj.GetComponent<UnityEngine.UI.Image>();
-            img.color = new Color(0.8f, 0.2f, 0.2f); 
+            var img   = btnObj.GetComponent<UnityEngine.UI.Image>();
+            img.color = new Color(0.85f, 0.15f, 0.15f, 0.95f);
 
+            // Click: Dùng Instance thạy vì closure có thể stale
             var btn = btnObj.GetComponent<UnityEngine.UI.Button>();
-            btn.onClick.AddListener(ExitPuzzle);
+            btn.onClick.AddListener(() =>
+            {
+                Debug.Log("[LandPuzzle] Nút thoát được nhấn!");
+                var manager = LandPuzzleManager.Instance;
+                if (manager != null)
+                    manager.ExitPuzzle();
+                else
+                    Debug.LogError("[LandPuzzle] LandPuzzleManager.Instance == null khi thoát!");
+                btnObj.SetActive(false); // Ẩn đi để tái sử dụng lần sau
+            });
 
+            // Chữ ✕
             GameObject txtObj = new GameObject("Text", typeof(RectTransform), typeof(UnityEngine.UI.Text));
             txtObj.transform.SetParent(btnObj.transform, false);
-            RectTransform txtRt = txtObj.GetComponent<RectTransform>();
-            txtRt.anchorMin = Vector2.zero; txtRt.anchorMax = Vector2.one;
-            txtRt.offsetMin = Vector2.zero; txtRt.offsetMax = Vector2.zero;
-            
-            var txt = txtObj.GetComponent<UnityEngine.UI.Text>();
-            txt.text = "X";
+            var txtRt = txtObj.GetComponent<RectTransform>();
+            txtRt.anchorMin = Vector2.zero;
+            txtRt.anchorMax = Vector2.one;
+            txtRt.offsetMin = Vector2.zero;
+            txtRt.offsetMax = Vector2.zero;
+
+            var txt       = txtObj.GetComponent<UnityEngine.UI.Text>();
+            txt.text      = "✕";
             txt.alignment = TextAnchor.MiddleCenter;
-            txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            txt.fontSize = 30;
-            txt.color = Color.white;
+            txt.font      = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            txt.fontSize  = 36;
+            txt.color     = Color.white;
             txt.fontStyle = FontStyle.Bold;
+
+            Debug.Log($"<color=lime>[LandPuzzle]</color> ✅ Nút thoát đã tạo trong '{targetCanvas.name}'");
         }
 
         /// <summary>Gọi trực tiếp (editor test hoặc farm tile click).</summary>
@@ -151,9 +228,9 @@ namespace FarmPuzzle.LandPuzzle
 
         public void ExitPuzzle()
         {
+            Debug.Log("<color=orange>[Puzzle]</color> ExitPuzzle: Thoát không có thưởng → Ẩn toàn bộ hệ thống.");
             CleanUpPuzzle();
-            if (_puzzlePanel != null) _puzzlePanel.SetActive(false);
-            _state = PuzzleState.Idle;
+            HideEntirePuzzleSystem(); // Tắt _puzzlePanel + _gridBoard + _blockSpawner + set Idle
         }
 
         private void HandleBlockPlaced(ShapeData shape, Vector2Int anchor)

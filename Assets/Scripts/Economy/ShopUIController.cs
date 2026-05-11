@@ -24,26 +24,35 @@ namespace FarmPuzzle.Economy
 
         private void Start()
         {
-            // 1. Force Login to load Player Data locally in this test scene
-            if (DataManager.Instance != null && DataManager.Instance.CurrentPlayer == null)
-            {
-                DataManager.Instance.LoginPlayer("test_user_1", "Test Player 1");
-                // Cho thêm tiền để dễ test thủ công
-                DataManager.Instance.AddGold(1000); 
-            }
-
-            // 2. Tự động sinh ra 12 nút (6 seeds, 6 decors) từ Catalog
-            GenerateShopButtons();
-
-            // 3. Cập nhật UI lần đầu
-            UpdateGoldDisplay();
-
-            // 4. Lắng nghe các sự kiện mua sắm
+            // Lắng nghe sự kiện mua sắm
             if (ShopManager.Instance != null)
             {
                 ShopManager.Instance.OnItemPurchased += HandleItemPurchased;
                 ShopManager.Instance.OnPurchaseFailed += HandlePurchaseFailed;
             }
+
+            // Kiểm tra DataManager đã có Player chưa (trường hợp Start() chạy sau Login)
+            if (DataManager.Instance != null && DataManager.Instance.CurrentPlayer != null)
+            {
+                BuildUI();
+            }
+            else
+            {
+                // Chưa login -> chờ event từ MainMenuUI/DataManager
+                DataManager.OnPlayerLoggedIn += OnPlayerReady;
+            }
+        }
+
+        private void OnPlayerReady()
+        {
+            DataManager.OnPlayerLoggedIn -= OnPlayerReady;
+            BuildUI();
+        }
+
+        private void BuildUI()
+        {
+            GenerateShopButtons();
+            UpdateGoldDisplay();
         }
 
         private void OnDestroy()

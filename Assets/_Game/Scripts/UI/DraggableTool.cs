@@ -20,18 +20,31 @@ namespace FarmPuzzle.UI
         private Transform _originalParent;
         private LandPlot _lastHighlightedPlot;
 
+        // Cache Canvas root để SetParent đúng trong OnBeginDrag (tránh InvalidCastException)
+        private Transform _dragCanvas;
+
         private void Awake()
         {
             _rectTransform = GetComponent<RectTransform>();
             _canvasGroup = GetComponent<CanvasGroup>();
             if (_canvasGroup == null) _canvasGroup = gameObject.AddComponent<CanvasGroup>();
+
+            // Tìm Canvas cha gần nhất để làm container kéo thả
+            Canvas parentCanvas = GetComponentInParent<Canvas>();
+            if (parentCanvas != null)
+                _dragCanvas = parentCanvas.transform;
+            else
+                _dragCanvas = transform.root; // Fallback an toàn
         }
 
         public void OnBeginDrag(PointerEventData eventData)
         {
             _startPosition = _rectTransform.anchoredPosition;
             _originalParent = transform.parent;
-            transform.SetParent(transform.root); 
+
+            // FIX: Phải SetParent lên Canvas (RectTransform), KHÔNG phải transform.root (Transform thường)
+            // Nếu set lên transform.root (scene root), cast sang RectTransform ở OnDrag sẽ crash!
+            transform.SetParent(_dragCanvas);
             transform.SetAsLastSibling();
             _canvasGroup.alpha = 0.7f;
             _canvasGroup.blocksRaycasts = false;
@@ -40,10 +53,14 @@ namespace FarmPuzzle.UI
 
         public void OnDrag(PointerEventData eventData)
         {
-            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                (RectTransform)transform.parent, eventData.position, eventData.pressEventCamera, out Vector2 localPointerPosition))
+            // An toàn: chỉ cast khi transform.parent thực sự là RectTransform
+            if (transform.parent is RectTransform parentRect)
             {
-                _rectTransform.localPosition = localPointerPosition;
+                if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    parentRect, eventData.position, eventData.pressEventCamera, out Vector2 localPointerPosition))
+                {
+                    _rectTransform.localPosition = localPointerPosition;
+                }
             }
 
             Vector2 worldPos = Camera.main.ScreenToWorldPoint(eventData.position);
