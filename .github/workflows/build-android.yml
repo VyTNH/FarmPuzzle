@@ -1,18 +1,15 @@
 name: Build Android APK 🚀
 
 on:
-  workflow_dispatch:
-
   push:
     branches:
       - dev
+  workflow_dispatch:
 
 jobs:
   build:
     name: Build Android 🤖
-    runs-on:
-  workflow_dispatch:
- ubuntu-latest
+    runs-on: ubuntu-latest
     
     steps:
       - name: Checkout code
@@ -36,9 +33,7 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: Android
-          unityVersion:
-  workflow_dispatch:
- 6000.3.10f1
+          unityVersion: 6000.3.10f1
           buildName: FarmPuzzle
 
       - name: Upload APK
