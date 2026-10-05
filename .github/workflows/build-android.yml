@@ -24,17 +24,12 @@ jobs:
           restore-keys: |
             Library-
 
-      # BƯỚC MỚI: Tự động đăng nhập và xin bản quyền ngay trên máy ảo!
-      - name: Tự động đăng nhập Unity
-        uses: RageAgainstThePixel/activate-unity-license@v2
-        with:
-          license: 'Personal'
-          username: ${{ secrets.UNITY_EMAIL }}
-          password: ${{ secrets.UNITY_PASSWORD }}
-          # Bạn có thể bỏ qua dòng authenticator nếu không dùng bảo mật 2 lớp
-
       - name: Build Unity Project
         uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: Android
           unityVersion: 6000.3.10f1
