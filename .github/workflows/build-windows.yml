@@ -1,4 +1,4 @@
-name: Build Android APK 🚀
+name: Build Windows 💻
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build Android 🤖
+    name: Build Windows 💻
     runs-on: ubuntu-latest
     
     steps:
@@ -32,12 +32,12 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          targetPlatform: Android
+          targetPlatform: StandaloneWindows64
           unityVersion: 6000.3.10f1
           buildName: FarmPuzzle
 
-      - name: Upload APK
+      - name: Upload Windows Build
         uses: actions/upload-artifact@v4
         with:
-          name: Build-Android-APK
-          path: build/Android
+          name: Build-Windows
+          path: build/StandaloneWindows64
