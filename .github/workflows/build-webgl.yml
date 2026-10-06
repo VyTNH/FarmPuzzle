@@ -1,4 +1,4 @@
-name: Build Windows 💻
+name: Build & Deploy WebGL 🌐
 
 on:
   push:
@@ -6,9 +6,12 @@ on:
       - dev
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
-    name: Build Windows 💻
+    name: Build WebGL & Deploy 🎮
     runs-on: ubuntu-latest
     
     steps:
@@ -25,19 +28,27 @@ jobs:
           restore-keys: |
             Library-
 
-      - name: Build Unity Project
+      - name: Build Unity WebGL
         uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          targetPlatform: StandaloneWindows64
+          targetPlatform: WebGL
           unityVersion: 6000.3.10f1
           buildName: FarmPuzzle
 
-      - name: Upload Windows Build
-        uses: actions/upload-artifact@v4
+      - name: Prepare WebGL directory
+        run: |
+          if [ -d "build/WebGL/FarmPuzzle" ]; then
+            echo "DEPLOY_FOLDER=build/WebGL/FarmPuzzle" >> $GITHUB_ENV
+          else
+            echo "DEPLOY_FOLDER=build/WebGL" >> $GITHUB_ENV
+          fi
+
+      - name: Deploy to GitHub Pages 🚀
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          name: Build-Windows
-          path: build/StandaloneWindows64
+          branch: gh-pages
+          folder: ${{ env.DEPLOY_FOLDER }}
