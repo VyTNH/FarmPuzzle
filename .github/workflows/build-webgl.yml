@@ -28,6 +28,15 @@ jobs:
           restore-keys: |
             Library-
 
+      - name: 📊 Kiểm tra cấu hình & Dung lượng máy ảo trước khi build
+        run: |
+          echo "=== 1. TÊN CHIP CPU ==="
+          lscpu | grep "Model name\|CPU(s):"
+          echo "=== 2. DUNG LƯỢNG RAM ==="
+          free -h
+          echo "=== 3. DUNG LƯỢNG Ổ CỨNG TRƯỚC KHI BUILD ==="
+          df -h /
+
       - name: Build Unity WebGL
         uses: game-ci/unity-builder@v4
         env:
@@ -38,6 +47,11 @@ jobs:
           targetPlatform: WebGL
           unityVersion: 6000.3.10f1
           buildName: FarmPuzzle
+
+      - name: 📊 Dung lượng ổ cứng sau khi build
+        run: |
+          echo "=== DUNG LƯỢNG Ổ CỨNG SAU KHI BUILD XONG ==="
+          df -h /
 
       - name: Prepare WebGL directory
         run: |
